@@ -1,0 +1,2904 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bouncy Adventure</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            min-width: 100vw;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .game-container {
+            display: flex;
+            gap: 32px;
+            align-items: flex-start;
+            justify-content: center;
+            box-sizing: border-box;
+            width: 100vw;
+            max-width: 1200px;
+        }
+        
+        canvas {
+            border: 3px solid #fff;
+            border-radius: 14px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+            background: linear-gradient(180deg, #87CEEB 0%, #98FB98 100%);
+            display: block;
+        }
+        
+        .game-guide {
+            width: 340px;
+            background: rgba(0, 0, 0, 0.85);
+            border: 3px solid #fff;
+            border-radius: 14px;
+            padding: 24px 20px 20px 20px;
+            color: white;
+            max-height: 640px;
+            overflow-y: auto;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+        }
+        
+        .game-guide h2 {
+            margin: 0 0 15px 0;
+            color: #FFD700;
+            text-align: center;
+            font-size: 18px;
+            border-bottom: 2px solid #FFD700;
+            padding-bottom: 5px;
+        }
+        
+        .guide-section {
+            margin-bottom: 20px;
+        }
+        
+        .guide-section h3 {
+            margin: 0 0 10px 0;
+            color: #FF6B6B;
+            font-size: 16px;
+        }
+        
+        .item-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            border-left: 4px solid;
+        }
+        
+        .item-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 12px;
+            text-align: center;
+            flex-shrink: 0;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .item-icon img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            transform: scaleX(-1); /* Flip to match game direction */
+        }
+        
+        .item-icon-text {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            font-size: 8px;
+            padding: 1px;
+            text-align: center;
+        }
+        
+        .item-info {
+            flex: 1;
+        }
+        
+        .item-name {
+            font-weight: bold;
+            font-size: 14px;
+            margin-bottom: 2px;
+        }
+        
+        .item-description {
+            font-size: 12px;
+            opacity: 0.9;
+            line-height: 1.3;
+        }
+        
+        /* Obstacle colors */
+        .slider { border-left-color: #FF4757; }
+        .slider .item-icon { background: #FF4757; color: white; }
+        
+        .bouncer { border-left-color: #00BFFF; }
+        .bouncer .item-icon { background: #00BFFF; color: white; }
+        
+        .sweeper { border-left-color: #FFD700; }
+        .sweeper .item-icon { background: #FFD700; color: black; }
+        
+        .crawler { border-left-color: #8A2BE2; }
+        .crawler .item-icon { background: #8A2BE2; color: white; }
+        
+        .floater { border-left-color: #00CED1; }
+        .floater .item-icon { background: #00CED1; color: white; }
+        
+        /* Power-up colors */
+        .health { border-left-color: #FF00FF; }
+        .health .item-icon { background: #FF00FF; color: white; }
+        
+        .shield { border-left-color: #00BFFF; }
+        .shield .item-icon { background: #00BFFF; color: white; }
+        
+        .doublejump { border-left-color: #9B59B6; }
+        .doublejump .item-icon { background: #9B59B6; color: white; }
+        
+        .gun { border-left-color: #FF4500; }
+        .gun .item-icon { background: #FF4500; color: white; }
+        
+        .slowmotion { border-left-color: #00BFFF; }
+        .slowmotion .item-icon { background: #00BFFF; color: white; }
+        
+        .controls {
+            position: fixed;
+            top: 32px;
+            left: 32px;
+            color: white;
+            font-size: 15px;
+            background: rgba(0, 0, 0, 0.85);
+            padding: 16px 20px;
+            border-radius: 10px;
+            max-width: 340px;
+            border: 2px solid #fff;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+            z-index: 2000;
+            letter-spacing: 0.01em;
+        }
+        
+        .difficulty-info {
+            margin-top: 15px;
+            padding: 10px;
+            background: rgba(255, 140, 0, 0.2);
+            border-radius: 5px;
+            border-left: 4px solid #FF8C00;
+        }
+        
+        .difficulty-info h4 {
+            margin: 0 0 5px 0;
+            color: #FF8C00;
+            font-size: 14px;
+        }
+        
+        .difficulty-info p {
+            margin: 0;
+            font-size: 12px;
+            opacity: 0.9;
+        }
+        
+        .difficulty-selection {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        .difficulty-option {
+            width: 400px;
+            margin: 10px 0;
+            padding: 20px;
+            border: 2px solid transparent;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .difficulty-option:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.05);
+        }
+        
+        @media (max-width: 1100px) {
+            .game-container {
+                flex-direction: column;
+                align-items: center;
+                gap: 24px;
+            }
+            .game-guide {
+                width: 95vw;
+                max-width: 420px;
+                margin: 0 auto;
+            }
+        }
+        @media (max-width: 900px) {
+            .game-container {
+                flex-direction: column;
+                align-items: center;
+                gap: 18px;
+            }
+            .game-guide {
+                width: 98vw;
+                max-width: 98vw;
+                padding: 16px 8px 12px 8px;
+            }
+            .controls {
+                max-width: 90vw;
+                left: 8px;
+                top: 8px;
+                padding: 10px 12px;
+            }
+        }
+        @media (max-width: 700px) {
+            .game-container {
+                flex-direction: column;
+                align-items: center;
+                gap: 10px;
+            }
+            canvas {
+                width: 98vw !important;
+                height: 60vw !important;
+                max-width: 100vw;
+                max-height: 60vw;
+            }
+            .game-guide {
+                width: 99vw;
+                max-width: 99vw;
+                padding: 8px 2vw 8px 2vw;
+            }
+            .controls {
+                max-width: 98vw;
+                left: 2vw;
+                top: 2vw;
+                padding: 8px 6px;
+                font-size: 13px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="controls">
+        <strong>🎮 BOUNCY ADVENTURE</strong><br>
+        Hold SPACE to charge jump, release to jump<br>
+        DOWN arrow to duck • P to pause • R to restart<br>
+        X or RIGHT-CLICK to shoot when gun is active
+    </div>
+    
+    <div class="game-container">
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+        
+        <div class="game-guide">
+            <h2>🎯 GAME GUIDE</h2>
+            
+            <div class="guide-section">
+                <h3>⚡ OBSTACLES</h3>
+                <div class="item-list">
+                    <div class="item slider">
+                        <div class="item-icon">
+                            <img src="assets/images/obstacles/slider.png" alt="Slider" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                            <div class="item-icon-text" style="display: none;">SLIDE</div>
+                        </div>
+                        <div class="item-info">
+                            <div class="item-name">Steam Guard Robot</div>
+                            <div class="item-description">Moves horizontally at medium height. Jump over or duck under depending on timing.</div>
+                        </div>
+                    </div>
+                    
+                    <div class="item bouncer">
+                        <div class="item-icon">
+                            <img src="assets/images/obstacles/bouncer.png" alt="Bouncer" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                            <div class="item-icon-text" style="display: none;">BOUNCE</div>
+                        </div>
+                        <div class="item-info">
+                            <div class="item-name">Spring Automaton</div>
+                            <div class="item-description">Bounces vertically from ground to high in the air. Time your movement carefully.</div>
+                        </div>
+                    </div>
+                    
+                    <div class="item sweeper">
+                        <div class="item-icon">
+                            <img src="assets/images/obstacles/sweeper.png" alt="Sweeper" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                            <div class="item-icon-text" style="display: none;">SWEEP</div>
+                        </div>
+                        <div class="item-info">
+                            <div class="item-name">Clockwork Falcon</div>
+                            <div class="item-description">Flies at medium height with swooping motion. Duck or time your position.</div>
+                        </div>
+                    </div>
+                    
+                    <div class="item crawler">
+                        <div class="item-icon">
+                            <img src="assets/images/obstacles/crawler.png" alt="Crawler" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                            <div class="item-icon-text" style="display: none;">CRAWL</div>
+                        </div>
+                        <div class="item-info">
+                            <div class="item-name">Mechanical Spider</div>
+                            <div class="item-description">Stays low on the ground. Must jump over it - ducking won't help!</div>
+                        </div>
+                    </div>
+                    
+                    <div class="item floater">
+                        <div class="item-icon">
+                            <img src="assets/images/obstacles/floater.png" alt="Floater" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                            <div class="item-icon-text" style="display: none;">FLOAT</div>
+                        </div>
+                        <div class="item-info">
+                            <div class="item-name">Steam Balloon Drone</div>
+                            <div class="item-description">Floats high in the air. Duck under it or stay low to avoid.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="guide-section">
+                <h3>💎 POWER-UPS</h3>
+                <div class="item-list">
+                    <div class="item health">
+                        <div class="item-icon">+</div>
+                        <div class="item-info">
+                            <div class="item-name">Health Pickup</div>
+                            <div class="item-description">Restores 1 heart. Collect when injured to stay in the game longer.</div>
+                        </div>
+                    </div>
+                    
+                    <div class="item shield">
+                        <div class="item-icon">🛡</div>
+                        <div class="item-info">
+                            <div class="item-name">Shield</div>
+                            <div class="item-description">Protects you from 1 hit for 5 seconds. Blue bubble surrounds you when active.</div>
+                        </div>
+                    </div>
+                    
+                    <div class="item doublejump">
+                        <div class="item-icon">🌟</div>
+                        <div class="item-info">
+                            <div class="item-name">Double Jump</div>
+                            <div class="item-description">Allows you to jump twice in mid-air. Use carefully!</div>
+                        </div>
+                    </div>
+                    
+                    <div class="item gun">
+                        <div class="item-icon">🔫</div>
+                        <div class="item-info">
+                            <div class="item-name">Laser Gun</div>
+                            <div class="item-description">Destroys obstacles with 5 shots. Right-click or X to fire!</div>
+                        </div>
+                    </div>
+                    
+                    <div class="item slowmotion">
+                        <div class="item-icon">🕐</div>
+                        <div class="item-info">
+                            <div class="item-name">Time Dilation</div>
+                            <div class="item-description">Slows everything for 6 seconds. Unlocks at difficulty 4+!</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="difficulty-info">
+                <h4>📈 Progressive Difficulty</h4>
+                <p>The game gets harder as your score increases! Obstacles spawn faster and move quicker. Power-ups become rarer at higher difficulties.</p>
+            </div>
+            
+            <div class="guide-section">
+                <h3>🎮 Controls</h3>
+                <div style="font-size: 12px; line-height: 1.4;">
+                    <strong>SPACE:</strong> Hold to charge jump, release to jump<br>
+                    <strong>DOWN:</strong> Duck under high obstacles<br>
+                    <strong>LEFT/RIGHT:</strong> Move horizontally<br>
+                    <strong>P:</strong> Pause/Resume game<br>
+                    <strong>R:</strong> Restart when game over
+                </div>
+            </div>
+            
+            <div class="guide-section">
+                <h3>💡 Tips</h3>
+                <div style="font-size: 12px; line-height: 1.4;">
+                    • Watch obstacle patterns to predict movement<br>
+                    • Use variable jump height strategically<br>
+                    • Collect power-ups when safe to do so<br>
+                    • Duck + move for better ground clearance<br>
+                    • Shield protects from damage, not falling!
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Game state
+        const keys = {};
+        
+        // Our bouncy character!
+        const player = {
+            x: 100,
+            y: 300,
+            width: 40,
+            height: 40,
+            vx: 0,  // horizontal velocity
+            vy: 0,  // vertical velocity
+            grounded: false,
+            color: '#FF6B6B',
+            trail: [], // for a fun trail effect
+            jumping: false, // track if we're in a jump that can be cut short
+            ducking: false, // track if player is ducking
+            normalHeight: 40, // store original height
+            duckHeight: 20, // height when ducking
+            charging: false, // track if player is charging a jump
+            chargeTime: 0, // how long they've been charging (0-60 frames)
+            maxChargeTime: 60 // 1 second at 60fps for full power
+        };
+        
+        // Obstacle system
+        const obstacles = [];
+        // Power-up system
+        const powerups = [];
+        const powerupTypes = {
+            HEALTH: {
+                color: '#FF00FF', // Bright magenta/pink for better visibility
+                secondaryColor: '#FFFFFF', // White for cross
+                width: 25,
+                height: 25,
+                speed: -2, // Slower than obstacles so players can react
+                spawnChance: 0.25, // 25% spawn rate for testing
+                effect: 'health'
+            },
+            SHIELD: {
+                color: '#00BFFF', // Bright blue for shield
+                secondaryColor: '#FFFFFF', // White for shield icon
+                width: 28,
+                height: 28,
+                speed: -2,
+                spawnChance: 0.15, // Slightly rarer than health
+                effect: 'shield'
+            },
+            DOUBLEJUMP: {
+                color: '#9B59B6', // Purple for double jump
+                secondaryColor: '#FFFFFF', // White for cross
+                width: 25,
+                height: 25,
+                speed: -2,
+                spawnChance: 0.15,
+                effect: 'doublejump'
+            },
+            GUN: {
+                color: '#FF4500', // Orange for gun
+                secondaryColor: '#FFFFFF', // White for cross
+                width: 30,
+                height: 30,
+                speed: -2,
+                spawnChance: 0.1,
+                effect: 'gun'
+            },
+            SLOWMOTION: {
+                color: '#00BFFF', // Cyan for slow motion
+                secondaryColor: '#FFFFFF', // White for clock
+                width: 32,
+                height: 32,
+                speed: -2,
+                spawnChance: 0.05, // Very rare
+                effect: 'slowmotion',
+                minDifficulty: 4 // Only appears at difficulty 4+
+            }
+        };
+        
+        const obstacleTypes = {
+            // 1. Classic horizontal mover
+            SLIDER: {
+                color: '#FF4757',
+                width: 30,
+                height: 60,
+                speed: -4,
+                movement: 'horizontal'
+            },
+            
+            // 2. Vertical bouncer - forces you to time your position
+            BOUNCER: {
+                color: '#FF6B35',
+                width: 75, // Optimized size for visibility and gameplay balance
+                height: 75, // Optimized size for visibility and gameplay balance
+                speed: -2, // Reduced from -3 for slower horizontal movement (more distance per jump)
+                movement: 'vertical',
+                amplitude: 250, // Increased from 200 for even higher jumps
+                frequency: 0.03 // Reduced from 0.05 for slower, more deliberate bounces
+            },
+            
+            // 3. Diagonal sweeper - creates interesting dodge patterns
+            SWEEPER: {
+                color: '#C44569',
+                width: 65, // Increased by 30% from 50 for better visibility
+                height: 65, // Increased by 30% from 50 for better visibility
+                speed: -3.5,
+                movement: 'diagonal'
+            },
+            
+            // 4. Low crawler - must jump over
+            CRAWLER: {
+                color: '#6C5CE7',
+                width: 40, // Reduced by 20% from 50 for better ground positioning
+                height: 40, // Reduced by 20% from 50 for better ground positioning
+                speed: -5,
+                movement: 'ground'
+            },
+            
+            // 5. High floater - must duck under (or stay low)
+            FLOATER: {
+                color: '#00D2D3',
+                width: 80,
+                height: 30,
+                speed: -3,
+                movement: 'air'
+            }
+        };
+        
+        // Game state
+        const gameState = {
+            health: 3,
+            maxHealth: 3,
+            score: 0,
+            gameOver: false,
+            paused: false,
+            invulnerable: false, // temporary invincibility after getting hit
+            invulnerableTime: 0,
+            musicStarted: false,
+            gameStarted: false, // Track if the actual game has started
+            difficultySelected: false, // Track if difficulty has been selected
+            selectedDifficulty: 'medium', // Default to medium
+            shieldActive: false, // Shield power-up active
+            shieldTime: 0, // Shield duration timer
+            doubleJumpActive: false, // Double jump power-up active
+            doubleJumpCharges: 0, // Number of double jumps available
+            gunActive: false, // Gun power-up active
+            gunCharges: 0, // Number of shots available
+            difficultyLevel: 1, // Current difficulty level (1-10)
+            lastDifficultyIncrease: 0, // Score when difficulty last increased
+            baseDifficultyInterval: 1800, // Base score interval for difficulty increases (increased from 900 for slower progression)
+            slowMotionActive: false, // Slow motion power-up active
+            slowMotionTime: 0, // Slow motion duration timer
+            slowMotionFactor: 0.3 // How slow things go during slow motion (30% speed)
+        };
+        
+        // Temporary fix: Simple function to prevent initialization error
+        function getCurrentDifficultySettings() {
+            const settings = {
+                easy: {
+                    name: 'Easy', emoji: '🟢', description: 'Perfect for newcomers', color: '#4CAF50',
+                    maxHealth: 4, spawnInterval: 180, obstacleSpeedMultiplier: 0.75, 
+                    powerupSpawnMultiplier: 1.5, difficultyProgressionRate: 0.5, scoreMultiplier: 0.8
+                },
+                medium: {
+                    name: 'Medium', emoji: '🟡', description: 'Balanced challenge', color: '#FF9800',
+                    maxHealth: 3, spawnInterval: 120, obstacleSpeedMultiplier: 1.0, 
+                    powerupSpawnMultiplier: 1.0, difficultyProgressionRate: 1.0, scoreMultiplier: 1.0
+                },
+                hard: {
+                    name: 'Hard', emoji: '🔴', description: 'For veterans only', color: '#F44336',
+                    maxHealth: 3, spawnInterval: 90, obstacleSpeedMultiplier: 1.25, 
+                    powerupSpawnMultiplier: 0.5, difficultyProgressionRate: 1.5, scoreMultiplier: 1.5
+                }
+            };
+            return settings[gameState.selectedDifficulty] || settings.medium;
+        }
+        
+        // Projectiles system
+        const projectiles = [];
+        
+        // Audio system - multiple steampunk tracks
+        const musicTracks = [
+            'assets/music/steam-punk-electro-1.mp3',
+            'assets/music/steam-punk-electro-2.mp3', 
+            'assets/music/steam-punk-symphony-1.mp3',
+            'assets/music/steam-punk-symphony-2.mp3'
+        ];
+        
+        let currentTrack = null;
+        let selectedTrackIndex = 0;
+        
+        function selectRandomTrack() {
+            selectedTrackIndex = Math.floor(Math.random() * musicTracks.length);
+            if (currentTrack) {
+                currentTrack.pause();
+                currentTrack.currentTime = 0;
+            }
+            
+            currentTrack = new Audio(musicTracks[selectedTrackIndex]);
+            currentTrack.loop = true;
+            currentTrack.volume = 0.7;
+            
+            console.log(`Selected track: ${musicTracks[selectedTrackIndex]}`);
+        }
+        
+        // Initialize with a random track
+        selectRandomTrack();
+        
+        // Sound effects system
+        const soundEffects = {
+            bounce: new Audio('assets/sound-effects/bounce.mp3'),
+            damage: new Audio('assets/sound-effects/damage.mp3'),
+            deflection: new Audio('assets/sound-effects/deflection.mp3'),
+            health: new Audio('assets/sound-effects/health.mp3'),
+            shield: new Audio('assets/sound-effects/shield.mp3'),
+            gun: new Audio('assets/sound-effects/shield.mp3') // Reuse shield sound for gun pickup
+        };
+        
+        // Set volume for sound effects
+        Object.values(soundEffects).forEach(sound => {
+            sound.volume = 0.6; // Slightly quieter than music
+        });
+        
+        function playSound(soundName) {
+            if (soundEffects[soundName]) {
+                // Reset sound to beginning and play
+                soundEffects[soundName].currentTime = 0;
+                soundEffects[soundName].play().catch(e => console.log(`Sound ${soundName} failed:`, e));
+            }
+        }
+
+        // Background images
+        const backgroundImg = new Image();
+        const groundFloorImg = new Image();
+        
+        backgroundImg.src = 'assets/images/backgrounds/background.png';
+        groundFloorImg.src = 'assets/images/backgrounds/ground-floor.png';
+        
+        // Obstacle images
+        const obstacleImages = {
+            slider: new Image(),
+            bouncer: new Image(),
+            sweeper: new Image(),
+            crawler: new Image(),
+            floater: new Image()
+        };
+        
+        // Load obstacle images from obstacles directory
+        obstacleImages.slider.src = 'assets/images/obstacles/slider.png';
+        obstacleImages.bouncer.src = 'assets/images/obstacles/bouncer.png';
+        obstacleImages.sweeper.src = 'assets/images/obstacles/sweeper.png';
+        obstacleImages.crawler.src = 'assets/images/obstacles/crawler.png';
+        obstacleImages.floater.src = 'assets/images/obstacles/floater.png';
+        
+        // Character images
+        const characterImages = {
+            default: new Image(),
+            jump: new Image(),
+            crouch: new Image()
+        };
+        
+        // Load character images
+        characterImages.default.src = 'assets/images/main-character/main-character.png';
+        characterImages.jump.src = 'assets/images/main-character/main-character-jump.png';
+        characterImages.crouch.src = 'assets/images/main-character/main-character-crouch.png';
+        
+        // Steampunk background elements
+        const steampunkElements = {
+            steamPipe: new Image(),
+            brassGear: new Image(),
+            pressureGauge: new Image(),
+            steamVent: new Image(),
+            pendulum: new Image(),
+            furnace: new Image()
+        };
+        
+        // Load steampunk element images
+        steampunkElements.steamPipe.src = 'assets/images/steampunk/vertical-steam-pipe.png';
+        steampunkElements.brassGear.src = 'assets/images/steampunk/brass-gear.png';
+        steampunkElements.pressureGauge.src = 'assets/images/steampunk/pressure-gauge-cluster.png';
+        steampunkElements.steamVent.src = 'assets/images/steampunk/horizontal-steam-vent.png';
+        steampunkElements.pendulum.src = 'assets/images/steampunk/clockwork-pendulum.png';
+        steampunkElements.furnace.src = 'assets/images/steampunk/furnace.png';
+        
+        // Active background elements array
+        const backgroundElements = [];
+        let elementSpawnTimer = 0;
+
+        // Element spawn configurations
+        const elementTypes = [
+            { name: 'steamPipe', speed: -1.2, scale: 0.15, spawnChance: 0.4, heightRange: [50, 300] },
+            { name: 'brassGear', speed: -0.8, scale: 0.12, spawnChance: 0.35, heightRange: [100, 350] },
+            { name: 'pressureGauge', speed: -1.5, scale: 0.1, spawnChance: 0.3, heightRange: [150, 400] },
+            { name: 'steamVent', speed: -1.0, scale: 0.12, spawnChance: 0.45, heightRange: [200, 450] },
+            { name: 'pendulum', speed: -0.6, scale: 0.12, spawnChance: 0.25, heightRange: [20, 250] },
+            { name: 'furnace', speed: -1.3, scale: 0.1, spawnChance: 0.35, heightRange: [300, 480] }
+        ];
+
+        // Parallax scrolling positions (remove mid-ground)
+        let backgroundOffset = 0;
+
+        // Simple obstacle spawning timer
+        let obstacleSpawnTimer = 0;
+        const obstacleSpawnInterval = 120; // spawn every 2 seconds at 60fps
+        
+        // Difficulty scaling system
+        const difficultyConfig = {
+            maxLevel: 10,
+            spawnRateReduction: 0.08, // 8% faster spawning per level
+            speedIncrease: 0.02, // 2% faster obstacles per level
+            powerupReduction: 0.05 // 5% fewer power-ups per level
+        };
+        
+        function getDynamicSpawnInterval() {
+            // Get base interval from difficulty settings
+            const difficulty = getCurrentDifficultySettings();
+            const baseInterval = difficulty.spawnInterval;
+            
+            // Base interval reduced by difficulty level (progression within the chosen difficulty)
+            const reduction = Math.min(gameState.difficultyLevel * difficultyConfig.spawnRateReduction, 0.6); // Max 60% reduction
+            return Math.floor(baseInterval * (1 - reduction));
+        }
+        
+        function getDifficultySpeedMultiplier() {
+            // Get base speed multiplier from difficulty settings
+            const difficulty = getCurrentDifficultySettings();
+            const baseSpeedMultiplier = difficulty.obstacleSpeedMultiplier;
+            
+            // Speed increases with difficulty level (progression within the chosen difficulty)
+            const progressionMultiplier = 1 + (gameState.difficultyLevel * difficultyConfig.speedIncrease);
+            
+            return baseSpeedMultiplier * progressionMultiplier;
+        }
+        
+        function getDifficultyPowerupMultiplier() {
+            // Get base power-up multiplier from difficulty settings
+            const difficulty = getCurrentDifficultySettings();
+            const basePowerupMultiplier = difficulty.powerupSpawnMultiplier;
+            
+            // Power-ups become slightly rarer with difficulty level (progression within the chosen difficulty)
+            const reduction = Math.min(gameState.difficultyLevel * difficultyConfig.powerupReduction, 0.4); // Max 40% reduction
+            const progressionMultiplier = 1 - reduction;
+            
+            return basePowerupMultiplier * progressionMultiplier;
+        }
+
+        // Particle system for effects
+        const particles = [];
+
+        function startGame() {
+            if (!gameState.gameStarted && gameState.difficultySelected) {
+                // Set health based on selected difficulty
+                const difficulty = getCurrentDifficultySettings();
+                gameState.maxHealth = difficulty.maxHealth;
+                gameState.health = difficulty.maxHealth;
+                
+                gameState.gameStarted = true;
+                startMusic();
+            }
+        }
+        
+        function selectDifficulty(difficultyKey) {
+            gameState.selectedDifficulty = difficultyKey;
+            gameState.difficultySelected = true;
+            
+            // Initialize health based on selected difficulty
+            const difficulty = getCurrentDifficultySettings();
+            gameState.maxHealth = difficulty.maxHealth;
+            gameState.health = difficulty.maxHealth;
+        }
+
+        function startMusic() {
+            if (!gameState.musicStarted) {
+                currentTrack.play().catch(e => console.log('Audio play failed:', e));
+                gameState.musicStarted = true;
+            }
+        }
+
+        function stopMusic() {
+            currentTrack.pause();
+            currentTrack.currentTime = 0;
+            gameState.musicStarted = false;
+        }
+
+        function spawnBackgroundElement() {
+            // TEMPORARILY DISABLED - Testing obstacle visibility without background elements
+            return;
+            
+            if (gameState.gameOver || gameState.paused || !gameState.gameStarted) return;
+            
+            elementSpawnTimer++;
+            
+            // First element spawns quickly, then normal timing
+            const spawnThreshold = backgroundElements.length === 0 ? 20 : 60;
+            
+            if (elementSpawnTimer >= spawnThreshold) {
+                elementSpawnTimer = 0;
+                
+                // Randomly select an element type
+                const elementType = elementTypes[Math.floor(Math.random() * elementTypes.length)];
+                
+                // Check spawn chance
+                if (Math.random() < elementType.spawnChance) {
+                    // Add scale variation (more conservative range)
+                    const scaleVariation = 0.8 + Math.random() * 0.4; // 0.8 to 1.2 multiplier (reduced from 0.7-1.3)
+                    const finalScale = elementType.scale * scaleVariation;
+                    
+                    // Pre-load image to get dimensions
+                    const elementImage = steampunkElements[elementType.name];
+                    if (!elementImage.complete) return; // Skip if image not loaded
+                    
+                    const elementWidth = elementImage.naturalWidth * finalScale;
+                    const elementHeight = elementImage.naturalHeight * finalScale;
+                    
+                    // Find a Y position that doesn't overlap with existing elements
+                    let attempts = 0;
+                    let validY = null;
+                    
+                    while (attempts < 10 && validY === null) {
+                        attempts++;
+                        
+                        // Generate random Y within height range, ensuring element stays above ground
+                        const maxY = Math.min(elementType.heightRange[1], groundY - elementHeight - 10);
+                        const proposedY = elementType.heightRange[0] + Math.random() * (maxY - elementType.heightRange[0]);
+                        
+                        // Check if this Y position overlaps with any existing elements
+                        let hasOverlap = false;
+                        const overlapBuffer = 30; // Reduced buffer for more permissive placement
+                        
+                        for (const existingElement of backgroundElements) {
+                            // Only check overlap if elements are horizontally close (within 300px)
+                            const horizontalDistance = Math.abs((canvas.width + 150) - existingElement.x);
+                            if (horizontalDistance > 300) continue; // Skip distant elements
+                            
+                            const existingHeight = existingElement.image.naturalHeight * existingElement.scale;
+                            
+                            // Check if vertically overlapping (with smaller buffer)
+                            if (proposedY < existingElement.y + existingHeight + overlapBuffer && 
+                                proposedY + elementHeight + overlapBuffer > existingElement.y) {
+                                hasOverlap = true;
+                                break;
+                            }
+                        }
+                        
+                        if (!hasOverlap) {
+                            validY = proposedY;
+                        }
+                    }
+                    
+                    // Only spawn if we found a valid position
+                    if (validY !== null) {
+                        const element = {
+                            type: elementType.name,
+                            image: elementImage,
+                            x: canvas.width + 50 + Math.random() * 200, // Vary X spawn position
+                            y: validY,
+                            speed: elementType.speed * (0.8 + Math.random() * 0.4), // Vary speed ±20%
+                            scale: finalScale,
+                            opacity: 0.6 + Math.random() * 0.4, // More opacity variation
+                            rotation: 0 // For rotating elements like gears
+                        };
+                        
+                        backgroundElements.push(element);
+                    }
+                }
+            }
+        }
+        
+        function updateBackgroundElements() {
+            if (gameState.paused) return;
+            
+            // Update existing elements
+            backgroundElements.forEach(element => {
+                element.x += element.speed;
+                
+                // Rotate gears and pendulums for extra effect
+                if (element.type === 'brassGear') {
+                    element.rotation += 0.01; // Slow gear rotation
+                } else if (element.type === 'pendulum') {
+                    element.rotation = Math.sin(Date.now() * 0.002) * 0.3; // Pendulum swing
+                }
+            });
+            
+            // Remove elements that are off-screen
+            backgroundElements.splice(0, backgroundElements.length, 
+                ...backgroundElements.filter(element => element.x > -200)
+            );
+        }
+        
+        function drawBackgroundElements() {
+            // TEMPORARILY DISABLED - Testing obstacle visibility without background elements
+            return;
+            
+            backgroundElements.forEach(element => {
+                if (!element.image.complete) return;
+                
+                const width = element.image.naturalWidth * element.scale;
+                const height = element.image.naturalHeight * element.scale;
+                
+                ctx.save();
+                ctx.globalAlpha = element.opacity;
+                
+                // Handle rotation for gears and pendulums
+                if (element.rotation !== 0) {
+                    ctx.translate(element.x + width/2, element.y + height/2);
+                    ctx.rotate(element.rotation);
+                    ctx.drawImage(element.image, -width/2, -height/2, width, height);
+                } else {
+                    ctx.drawImage(element.image, element.x, element.y, width, height);
+                }
+                
+                ctx.restore();
+            });
+        }
+
+        function simpleObstacleSpawning() {
+            if (gameState.gameOver || gameState.paused || !gameState.gameStarted) return;
+            
+            obstacleSpawnTimer++;
+            const currentSpawnInterval = getDynamicSpawnInterval();
+            
+            if (obstacleSpawnTimer >= currentSpawnInterval) {
+                obstacleSpawnTimer = 0;
+                
+                // Randomly spawn different types of obstacles
+                const types = ['CRAWLER', 'FLOATER', 'SLIDER', 'BOUNCER', 'SWEEPER'];
+                const randomType = types[Math.floor(Math.random() * types.length)];
+                
+                // Sometimes create squeeze challenges
+                if (Math.random() < 0.3) {
+                    createSqueezeChallenge().forEach(obs => obstacles.push(obs));
+                } else {
+                    obstacles.push(createObstacle(randomType));
+                }
+                
+                // Rare chance to spawn a health power-up (affected by difficulty)
+                const healthSpawnChance = powerupTypes.HEALTH.spawnChance * getDifficultyPowerupMultiplier();
+                if (Math.random() < healthSpawnChance && gameState.health < gameState.maxHealth) {
+                    spawnPowerup('HEALTH');
+                }
+                
+                // Rare chance to spawn a shield power-up (affected by difficulty)
+                const shieldSpawnChance = powerupTypes.SHIELD.spawnChance * getDifficultyPowerupMultiplier();
+                if (Math.random() < shieldSpawnChance && !gameState.shieldActive) {
+                    spawnPowerup('SHIELD');
+                }
+                
+                // Rare chance to spawn a double jump power-up (affected by difficulty)
+                const doubleJumpSpawnChance = powerupTypes.DOUBLEJUMP.spawnChance * getDifficultyPowerupMultiplier();
+                if (Math.random() < doubleJumpSpawnChance && gameState.doubleJumpCharges === 0) {
+                    spawnPowerup('DOUBLEJUMP');
+                }
+                
+                // Rare chance to spawn a gun power-up (affected by difficulty)
+                const gunSpawnChance = powerupTypes.GUN.spawnChance * getDifficultyPowerupMultiplier();
+                if (Math.random() < gunSpawnChance && gameState.gunCharges === 0) {
+                    spawnPowerup('GUN');
+                }
+                
+                // Ultra rare chance to spawn slow motion at high difficulty (affected by difficulty)
+                const slowMotionSpawnChance = powerupTypes.SLOWMOTION.spawnChance * getDifficultyPowerupMultiplier();
+                if (Math.random() < slowMotionSpawnChance && 
+                    !gameState.slowMotionActive && 
+                    gameState.difficultyLevel >= powerupTypes.SLOWMOTION.minDifficulty) {
+                    spawnPowerup('SLOWMOTION');
+                }
+            }
+        }
+        
+        function createObstacle(type) {
+            const template = obstacleTypes[type];
+            const speedMultiplier = getDifficultySpeedMultiplier();
+            
+            return {
+                type: type,
+                x: canvas.width + 50,
+                y: groundY - template.height,
+                width: template.width,
+                height: template.height,
+                speed: template.speed * speedMultiplier, // Apply difficulty scaling
+                color: template.color,
+                movement: template.movement,
+                time: 0, // for animation timing
+                ...template
+            };
+        }
+        
+        function createSqueezeChallenge() {
+            // Create a ground crawler
+            const crawler = createObstacle('CRAWLER');
+            
+            // Create a floater positioned to create a squeeze
+            const floater = createObstacle('FLOATER');
+            floater.x = crawler.x + 100; // Slightly offset for timing challenge
+            
+            return [crawler, floater];
+        }
+        
+        function spawnPowerup(type) {
+            const template = powerupTypes[type];
+            const powerup = {
+                type: type,
+                x: canvas.width + 50,
+                y: groundY - template.height - 30 - Math.random() * 100, // Reduced from 200 to 100 to keep within jump range
+                width: template.width,
+                height: template.height,
+                speed: template.speed,
+                color: template.color,
+                secondaryColor: template.secondaryColor,
+                effect: template.effect,
+                time: 0, // for animation
+                pulseScale: 1.0 // for breathing effect
+            };
+            powerups.push(powerup);
+        }
+        
+        function updatePowerups() {
+            if (gameState.paused) return;
+            
+            powerups.forEach(powerup => {
+                powerup.time += 1;
+                
+                // Apply slow motion to power-up movement
+                const speedMultiplier = gameState.slowMotionActive ? gameState.slowMotionFactor : 1.0;
+                powerup.x += powerup.speed * speedMultiplier;
+                
+                // Gentle floating/breathing animation
+                powerup.pulseScale = 1.0 + Math.sin(powerup.time * 0.1) * 0.1;
+                powerup.y += Math.sin(powerup.time * 0.05) * 0.5;
+            });
+            
+            // Remove power-ups that are off-screen
+            powerups.splice(0, powerups.length, ...powerups.filter(powerup => powerup.x > -powerup.width));
+        }
+        
+        function drawPowerups() {
+            powerups.forEach(powerup => {
+                const scale = powerup.pulseScale;
+                const width = powerup.width * scale;
+                const height = powerup.height * scale;
+                const x = powerup.x - (width - powerup.width) / 2;
+                const y = powerup.y - (height - powerup.height) / 2;
+                
+                // Draw outer glow effect
+                ctx.save();
+                ctx.globalAlpha = 0.3;
+                ctx.fillStyle = powerup.color;
+                ctx.beginPath();
+                ctx.arc(x + width/2, y + height/2, width/2 + 8, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+                
+                // Draw main background circle
+                ctx.fillStyle = powerup.color;
+                ctx.beginPath();
+                ctx.arc(x + width/2, y + height/2, width/2, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Draw health cross
+                if (powerup.type === 'HEALTH') {
+                    ctx.fillStyle = powerup.secondaryColor;
+                    ctx.lineWidth = 2;
+                    
+                    // Vertical bar of cross
+                    const crossWidth = width * 0.2;
+                    const crossHeight = height * 0.6;
+                    ctx.fillRect(x + width/2 - crossWidth/2, y + height/2 - crossHeight/2, crossWidth, crossHeight);
+                    
+                    // Horizontal bar of cross
+                    ctx.fillRect(x + width/2 - crossHeight/2, y + height/2 - crossWidth/2, crossHeight, crossWidth);
+                }
+                
+                // Draw shield icon
+                if (powerup.type === 'SHIELD') {
+                    ctx.fillStyle = powerup.secondaryColor;
+                    ctx.strokeStyle = powerup.secondaryColor;
+                    ctx.lineWidth = 2;
+                    
+                    // Draw shield shape (simplified)
+                    const centerX = x + width/2;
+                    const centerY = y + height/2;
+                    const shieldSize = width * 0.3;
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(centerX, centerY - shieldSize);
+                    ctx.lineTo(centerX - shieldSize * 0.8, centerY - shieldSize * 0.4);
+                    ctx.lineTo(centerX - shieldSize * 0.8, centerY + shieldSize * 0.2);
+                    ctx.lineTo(centerX, centerY + shieldSize);
+                    ctx.lineTo(centerX + shieldSize * 0.8, centerY + shieldSize * 0.2);
+                    ctx.lineTo(centerX + shieldSize * 0.8, centerY - shieldSize * 0.4);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.stroke();
+                }
+                
+                // Draw double jump icon (wings)
+                if (powerup.type === 'DOUBLEJUMP') {
+                    ctx.fillStyle = powerup.secondaryColor;
+                    ctx.strokeStyle = powerup.secondaryColor;
+                    ctx.lineWidth = 2;
+                    
+                    const centerX = x + width/2;
+                    const centerY = y + height/2;
+                    const wingSize = width * 0.25;
+                    
+                    // Left wing
+                    ctx.beginPath();
+                    ctx.moveTo(centerX - wingSize, centerY);
+                    ctx.quadraticCurveTo(centerX - wingSize * 1.5, centerY - wingSize, centerX - wingSize * 0.3, centerY - wingSize * 0.3);
+                    ctx.quadraticCurveTo(centerX - wingSize * 1.2, centerY + wingSize * 0.8, centerX - wingSize, centerY);
+                    ctx.fill();
+                    
+                    // Right wing
+                    ctx.beginPath();
+                    ctx.moveTo(centerX + wingSize, centerY);
+                    ctx.quadraticCurveTo(centerX + wingSize * 1.5, centerY - wingSize, centerX + wingSize * 0.3, centerY - wingSize * 0.3);
+                    ctx.quadraticCurveTo(centerX + wingSize * 1.2, centerY + wingSize * 0.8, centerX + wingSize, centerY);
+                    ctx.fill();
+                }
+                
+                // Draw gun icon
+                if (powerup.type === 'GUN') {
+                    ctx.fillStyle = powerup.secondaryColor;
+                    ctx.strokeStyle = powerup.secondaryColor;
+                    ctx.lineWidth = 2;
+                    
+                    const centerX = x + width/2;
+                    const centerY = y + height/2;
+                    const gunSize = width * 0.3;
+                    
+                    // Gun barrel
+                    ctx.fillRect(centerX - gunSize/2, centerY - gunSize/4, gunSize, gunSize/2);
+                    
+                    // Gun handle
+                    ctx.fillRect(centerX + gunSize/4, centerY, gunSize/3, gunSize/2);
+                    
+                    // Gun muzzle flash effect
+                    ctx.fillStyle = '#FFFF00';
+                    const flashSize = 3 + Math.sin(powerup.time * 0.3) * 2;
+                    ctx.fillRect(centerX - gunSize/2 - flashSize, centerY - flashSize/2, flashSize, flashSize);
+                }
+                
+                // Draw clock icon for slow motion
+                if (powerup.type === 'SLOWMOTION') {
+                    ctx.fillStyle = powerup.secondaryColor;
+                    ctx.strokeStyle = powerup.secondaryColor;
+                    ctx.lineWidth = 2;
+                    
+                    const centerX = x + width/2;
+                    const centerY = y + height/2;
+                    const clockSize = width * 0.3;
+                    
+                    // Clock circle
+                    ctx.beginPath();
+                    ctx.arc(centerX, centerY, clockSize, 0, Math.PI * 2);
+                    ctx.stroke();
+                    
+                    // Clock hands
+                    ctx.lineWidth = 1.5;
+                    // Hour hand (short, pointing up)
+                    ctx.beginPath();
+                    ctx.moveTo(centerX, centerY);
+                    ctx.lineTo(centerX, centerY - clockSize * 0.5);
+                    ctx.stroke();
+                    
+                    // Minute hand (long, pointing right)
+                    ctx.beginPath();
+                    ctx.moveTo(centerX, centerY);
+                    ctx.lineTo(centerX + clockSize * 0.7, centerY);
+                    ctx.stroke();
+                    
+                    // Center dot
+                    ctx.fillStyle = powerup.secondaryColor;
+                    ctx.beginPath();
+                    ctx.arc(centerX, centerY, 2, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                
+                // Add sparkle effect
+                ctx.save();
+                ctx.globalAlpha = 0.6 + Math.sin(powerup.time * 0.2) * 0.4;
+                ctx.fillStyle = powerup.secondaryColor;
+                const sparkleSize = 3;
+                for (let i = 0; i < 4; i++) {
+                    const angle = (powerup.time * 0.05 + i * Math.PI/2);
+                    const sparkleX = x + width/2 + Math.cos(angle) * (width/2 + 10);
+                    const sparkleY = y + height/2 + Math.sin(angle) * (height/2 + 10);
+                    ctx.fillRect(sparkleX - sparkleSize/2, sparkleY - sparkleSize/2, sparkleSize, sparkleSize);
+                }
+                ctx.restore();
+            });
+        }
+        
+        function updateObstacles() {
+            // Don't update if game is paused
+            if (gameState.paused) return;
+            
+            // Update existing obstacles
+            obstacles.forEach(obstacle => {
+                obstacle.time += 1;
+                
+                // Base horizontal movement (affected by slow motion)
+                const speedMultiplier = gameState.slowMotionActive ? gameState.slowMotionFactor : 1.0;
+                obstacle.x += obstacle.speed * speedMultiplier;
+                
+                // Special movement patterns
+                switch(obstacle.movement) {
+                    case 'vertical':
+                        // BOUNCER bounces from ground level up to amplitude height
+                        const bounceOffset = Math.abs(Math.sin(obstacle.time * obstacle.frequency)) * obstacle.amplitude;
+                        obstacle.y = groundY - obstacle.height + 20 - bounceOffset; // +20 to ensure it touches ground, then bounce up
+                        break;
+                        
+                    case 'diagonal':
+                        // SWEEPER (clockwork falcon) flies at medium height requiring ducking or careful timing
+                        const baseHeight = groundY - obstacle.height - 80; // Reduced from 150 to 80 pixels above ground for more challenge
+                        obstacle.y = baseHeight + Math.sin(obstacle.time * 0.03) * 30; // Gentle swooping motion
+                        break;
+                        
+                    case 'ground':
+                        // CRAWLER sits on ground level with slight adjustment to touch ground properly
+                        obstacle.y = groundY - obstacle.height + 5; // Move down 5 pixels to touch ground
+                        break;
+                        
+                    case 'air':
+                        obstacle.y = groundY - obstacle.height - 120;
+                        break;
+                        
+                    default: // horizontal
+                        obstacle.y = groundY - obstacle.height - 30;
+                }
+            });
+            
+            // Remove obstacles that are off-screen
+            obstacles.splice(0, obstacles.length, ...obstacles.filter(obs => obs.x > -obs.width));
+        }
+        
+        function drawObstacles() {
+            obstacles.forEach(obstacle => {
+                // Handle pulsing obstacles
+                const width = obstacle.currentWidth || obstacle.width;
+                const height = obstacle.currentHeight || obstacle.height;
+                const x = obstacle.x - (width - obstacle.width) / 2;
+                const y = obstacle.y - (height - obstacle.height) / 2;
+                
+                // Try to draw obstacle using its image first
+                let imageDrawn = false;
+                const obstacleType = obstacle.type.toLowerCase();
+                
+                if (obstacleImages[obstacleType] && obstacleImages[obstacleType].complete) {
+                    // Calculate pulsing effect for visibility (subtle)
+                    const pulseTime = Date.now() * 0.003; // Slow pulse
+                    const pulseIntensity = 0.8 + Math.sin(pulseTime) * 0.2; // Pulse between 0.6 and 1.0
+                    
+                    // Define glow colors for each obstacle type
+                    const glowColors = {
+                        slider: '#FF4757',    // Red glow for Steam Guard Robot
+                        bouncer: '#00BFFF',   // Blue glow for Spring Automaton  
+                        sweeper: '#FFD700',   // Yellow glow for Clockwork Falcon
+                        crawler: '#8A2BE2',   // Purple glow for Mechanical Spider
+                        floater: '#00CED1'    // Cyan glow for Steam Balloon Drone
+                    };
+                    
+                    const glowColor = glowColors[obstacleType] || '#FFFFFF';
+                    
+                    ctx.save();
+                    
+                    // Create glow effect (colored shadow)
+                    ctx.shadowColor = glowColor;
+                    ctx.shadowBlur = 8 * pulseIntensity; // Pulsing glow intensity
+                    ctx.shadowOffsetX = 0;
+                    ctx.shadowOffsetY = 0;
+                    
+                    // Flip character images horizontally so they face left (direction of movement)
+                    ctx.scale(-1, 1);
+                    
+                    // Draw the main image with glow
+                    ctx.drawImage(obstacleImages[obstacleType], -x - width, y, width, height);
+                    
+                    ctx.restore();
+                    imageDrawn = true;
+                }
+                
+                // Fallback to colored rectangles if image not available
+                if (!imageDrawn) {
+                    ctx.fillStyle = obstacle.color;
+                    ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+                    ctx.lineWidth = 2;
+                    
+                    ctx.fillRect(x, y, width, height);
+                    ctx.strokeRect(x, y, width, height);
+                }
+                
+                // Add visual flair based on type (only for non-image obstacles)
+                if (!imageDrawn) {
+                    if (obstacle.movement === 'vertical') {
+                        // Add motion lines for BOUNCER
+                        ctx.strokeStyle = obstacle.color;
+                        ctx.lineWidth = 1;
+                        for (let i = 0; i < 3; i++) {
+                            ctx.beginPath();
+                            ctx.moveTo(x - 10 - i*5, y + height/2);
+                            ctx.lineTo(x - 5 - i*5, y + height/2);
+                            ctx.stroke();
+                        }
+                    }
+                }
+            });
+        }
+        
+        function checkCollision(rect1, rect2) {
+            return rect1.x < rect2.x + rect2.width &&
+                   rect1.x + rect1.width > rect2.x &&
+                   rect1.y < rect2.y + rect2.height &&
+                   rect1.y + rect1.height > rect2.y;
+        }
+
+        function handleCollisions() {
+            if (gameState.gameOver) return;
+
+            // Obstacle collision detection (only when not invulnerable)
+            if (!gameState.invulnerable) {
+                obstacles.forEach(obstacle => {
+                    if (checkCollision(player, obstacle)) {
+                        // Check if shield is protecting us
+                        if (gameState.shieldActive) {
+                            // Shield blocks damage - just remove the obstacle
+                            obstacles.splice(obstacles.indexOf(obstacle), 1);
+                            
+                            // Shield impact effect
+                            createShieldImpactEffect(obstacle.x + obstacle.width/2, obstacle.y + obstacle.height/2);
+                            
+                            // Play deflection sound
+                            playSound('deflection');
+                            return;
+                        }
+                        
+                        // Take damage!
+                        gameState.health--;
+                        gameState.invulnerable = true;
+                        gameState.invulnerableTime = 120; // 2 seconds of invincibility
+
+                        // Play damage sound
+                        playSound('damage');
+
+                        // Screen shake on hit!
+                        canvas.style.transform = 'translate(' + (Math.random() * 10 - 5) + 'px, ' + (Math.random() * 10 - 5) + 'px)';
+                        setTimeout(() => {
+                            canvas.style.transform = 'translate(0, 0)';
+                        }, 200);
+
+                        // Player visual feedback
+                        player.color = '#FF9999'; // Flash lighter red
+                        setTimeout(() => {
+                            player.color = '#FF6B6B';
+                        }, 300);
+
+                        // Check game over
+                        if (gameState.health <= 0) {
+                            gameState.gameOver = true;
+                        }
+
+                        // Remove the obstacle that hit us
+                        obstacles.splice(obstacles.indexOf(obstacle), 1);
+                    }
+                });
+            }
+            
+            // Power-up collision detection (always active, even when invulnerable)
+            powerups.forEach((powerup, index) => {
+                if (checkCollision(player, powerup)) {
+                    // Apply power-up effect
+                    if (powerup.effect === 'health' && gameState.health < gameState.maxHealth) {
+                        gameState.health++;
+                        
+                        // Play health pickup sound
+                        playSound('health');
+                        
+                        // Visual feedback for health pickup
+                        createHealthPickupEffect(powerup.x + powerup.width/2, powerup.y + powerup.height/2);
+                        
+                        // Player visual feedback
+                        player.color = '#66FF66'; // Flash bright green
+                        setTimeout(() => {
+                            player.color = '#FF6B6B';
+                        }, 300);
+                        
+                        // Remove the collected power-up
+                        powerups.splice(index, 1);
+                    }
+                    
+                    // Shield power-up effect
+                    if (powerup.effect === 'shield') {
+                        gameState.shieldActive = true;
+                        gameState.shieldTime = 300; // 5 seconds at 60fps
+                        
+                        // Play shield pickup sound
+                        playSound('shield');
+                        
+                        // Visual feedback for shield pickup
+                        createShieldPickupEffect(powerup.x + powerup.width/2, powerup.y + powerup.height/2);
+                        
+                        // Player visual feedback
+                        player.color = '#66CCFF'; // Flash bright blue
+                        setTimeout(() => {
+                            player.color = '#FF6B6B';
+                        }, 300);
+                        
+                        // Remove the collected power-up
+                        powerups.splice(index, 1);
+                    }
+                    
+                    // Double jump power-up effect
+                    if (powerup.effect === 'doublejump') {
+                        gameState.doubleJumpActive = true;
+                        gameState.doubleJumpCharges = 3; // Give 3 double jumps
+                        
+                        // Play shield pickup sound (reuse for now)
+                        playSound('shield');
+                        
+                        // Visual feedback for double jump pickup
+                        createDoubleJumpPickupEffect(powerup.x + powerup.width/2, powerup.y + powerup.height/2);
+                        
+                        // Player visual feedback
+                        player.color = '#BB88FF'; // Flash bright purple
+                        setTimeout(() => {
+                            player.color = '#FF6B6B';
+                        }, 300);
+                        
+                        // Remove the collected power-up
+                        powerups.splice(index, 1);
+                    }
+                    
+                    // Gun power-up effect
+                    if (powerup.effect === 'gun') {
+                        gameState.gunActive = true;
+                        gameState.gunCharges = 5; // Give 5 gun charges
+                        
+                        // Play gun pickup sound
+                        playSound('gun');
+                        
+                        // Visual feedback for gun pickup
+                        createGunPickupEffect(powerup.x + powerup.width/2, powerup.y + powerup.height/2);
+                        
+                        // Player visual feedback
+                        player.color = '#FF6600'; // Flash bright orange
+                        setTimeout(() => {
+                            player.color = '#FF6B6B';
+                        }, 300);
+                        
+                        // Remove the collected power-up
+                        powerups.splice(index, 1);
+                    }
+                    
+                    // Slow motion power-up effect
+                    if (powerup.effect === 'slowmotion') {
+                        gameState.slowMotionActive = true;
+                        gameState.slowMotionTime = 360; // 6 seconds at 60fps
+                        
+                        // Play shield pickup sound (reuse for now)
+                        playSound('shield');
+                        
+                        // Visual feedback for slow motion pickup
+                        createSlowMotionPickupEffect(powerup.x + powerup.width/2, powerup.y + powerup.height/2);
+                        
+                        // Player visual feedback
+                        player.color = '#00CCFF'; // Flash bright cyan
+                        setTimeout(() => {
+                            player.color = '#FF6B6B';
+                        }, 300);
+                        
+                        // Remove the collected power-up
+                        powerups.splice(index, 1);
+                    }
+                }
+            });
+        }
+
+        function createHealthPickupEffect(x, y) {
+            // Create burst of green particles
+            for (let i = 0; i < 12; i++) {
+                const angle = (i / 12) * Math.PI * 2;
+                const speed = 3 + Math.random() * 4;
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    life: 1.0,
+                    maxLife: 60, // 1 second at 60fps
+                    color: '#00FF00',
+                    size: 4 + Math.random() * 3
+                });
+            }
+            
+            // Create "+1" text effect
+            particles.push({
+                x: x,
+                y: y,
+                vx: 0,
+                vy: -2,
+                life: 1.0,
+                maxLife: 90, // 1.5 seconds
+                color: '#FFFFFF',
+                size: 20,
+                text: '+1 HEALTH',
+                isText: true
+            });
+        }
+        
+        function createShieldPickupEffect(x, y) {
+            // Create burst of blue particles
+            for (let i = 0; i < 12; i++) {
+                const angle = (i / 12) * Math.PI * 2;
+                const speed = 3 + Math.random() * 4;
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    life: 1.0,
+                    maxLife: 60, // 1 second at 60fps
+                    color: '#0000FF',
+                    size: 4 + Math.random() * 3
+                });
+            }
+            
+            // Create "SHIELD" text effect
+            particles.push({
+                x: x,
+                y: y,
+                vx: 0,
+                vy: -2,
+                life: 1.0,
+                maxLife: 90, // 1.5 seconds
+                color: '#FFFFFF',
+                size: 20,
+                text: 'SHIELD',
+                isText: true
+            });
+        }
+        
+        function createShieldImpactEffect(x, y) {
+            // Create burst of red particles
+            for (let i = 0; i < 12; i++) {
+                const angle = (i / 12) * Math.PI * 2;
+                const speed = 3 + Math.random() * 4;
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    life: 1.0,
+                    maxLife: 60, // 1 second at 60fps
+                    color: '#FF0000',
+                    size: 4 + Math.random() * 3
+                });
+            }
+            
+            // Create "SHIELD" text effect
+            particles.push({
+                x: x,
+                y: y,
+                vx: 0,
+                vy: -2,
+                life: 1.0,
+                maxLife: 90, // 1.5 seconds
+                color: '#FFFFFF',
+                size: 20,
+                text: 'SHIELD',
+                isText: true
+            });
+        }
+        
+        function createDoubleJumpPickupEffect(x, y) {
+            // Create burst of purple particles
+            for (let i = 0; i < 12; i++) {
+                const angle = (i / 12) * Math.PI * 2;
+                const speed = 3 + Math.random() * 4;
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    life: 1.0,
+                    maxLife: 60, // 1 second at 60fps
+                    color: '#9B59B6',
+                    size: 4 + Math.random() * 3
+                });
+            }
+            
+            // Create "DOUBLE JUMP" text effect
+            particles.push({
+                x: x,
+                y: y,
+                vx: 0,
+                vy: -2,
+                life: 1.0,
+                maxLife: 90, // 1.5 seconds
+                color: '#FFFFFF',
+                size: 20,
+                text: 'DOUBLE JUMP!',
+                isText: true
+            });
+        }
+        
+        function createDoubleJumpEffect(x, y) {
+            // Create purple burst when double jumping
+            for (let i = 0; i < 8; i++) {
+                const angle = (i / 8) * Math.PI * 2;
+                const speed = 2 + Math.random() * 3;
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed + 2, // Slight downward bias
+                    life: 1.0,
+                    maxLife: 40, // Shorter effect
+                    color: '#9B59B6',
+                    size: 3 + Math.random() * 2
+                });
+            }
+        }
+        
+        function createGunPickupEffect(x, y) {
+            // Create burst of orange particles
+            for (let i = 0; i < 12; i++) {
+                const angle = (i / 12) * Math.PI * 2;
+                const speed = 3 + Math.random() * 4;
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    life: 1.0,
+                    maxLife: 60, // 1 second at 60fps
+                    color: '#FF4500',
+                    size: 4 + Math.random() * 3
+                });
+            }
+            
+            // Create "GUN!" text effect
+            particles.push({
+                x: x,
+                y: y,
+                vx: 0,
+                vy: -2,
+                life: 1.0,
+                maxLife: 90, // 1.5 seconds
+                color: '#FFFFFF',
+                size: 20,
+                text: 'GUN!',
+                isText: true
+            });
+        }
+        
+        function createSlowMotionPickupEffect(x, y) {
+            // Create burst of cyan particles with time ripple effect
+            for (let i = 0; i < 15; i++) {
+                const angle = (i / 15) * Math.PI * 2;
+                const speed = 3 + Math.random() * 4;
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    life: 1.0,
+                    maxLife: 90, // Longer effect
+                    color: '#00BFFF',
+                    size: 4 + Math.random() * 3
+                });
+            }
+            
+            // Create time ripples
+            for (let i = 0; i < 3; i++) {
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: 0,
+                    vy: 0,
+                    life: 1.0,
+                    maxLife: 60 + i * 20,
+                    color: '#00BFFF',
+                    size: 20 + i * 30,
+                    isRipple: true
+                });
+            }
+            
+            // Create "TIME DILATION!" text effect
+            particles.push({
+                x: x,
+                y: y,
+                vx: 0,
+                vy: -2,
+                life: 1.0,
+                maxLife: 120, // 2 seconds
+                color: '#FFFFFF',
+                size: 22,
+                text: 'TIME DILATION!',
+                isText: true
+            });
+        }
+        
+        function fireProjectile() {
+            if (!gameState.gunActive || gameState.gunCharges <= 0 || gameState.gameOver || gameState.paused) return;
+            
+            // Use a gun charge
+            gameState.gunCharges--;
+            
+            // Create projectile
+            const projectile = {
+                x: player.x + player.width, // Start from right side of player
+                y: player.y + player.height/2, // Center height
+                speed: 8, // Fast projectile
+                width: 15,
+                height: 4,
+                color: '#FFFF00', // Bright yellow laser
+                trail: []
+            };
+            
+            projectiles.push(projectile);
+            
+            // Play gun sound (reuse bounce for now)
+            playSound('bounce');
+            
+            // Create muzzle flash effect
+            createMuzzleFlashEffect(projectile.x, projectile.y);
+            
+            // Check if all charges used
+            if (gameState.gunCharges === 0) {
+                gameState.gunActive = false;
+            }
+        }
+        
+        function createMuzzleFlashEffect(x, y) {
+            // Create muzzle flash particles
+            for (let i = 0; i < 8; i++) {
+                const angle = -Math.PI/4 + (Math.random() * Math.PI/2); // Forward cone
+                const speed = 4 + Math.random() * 3;
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    life: 1.0,
+                    maxLife: 20, // Very short flash
+                    color: '#FFFF00',
+                    size: 2 + Math.random() * 3
+                });
+            }
+        }
+        
+        function updateParticles() {
+            if (gameState.paused) return;
+            
+            const speedMultiplier = gameState.slowMotionActive ? gameState.slowMotionFactor : 1.0;
+            
+            particles.forEach(particle => {
+                // Apply slow motion to particles (except text and ripples)
+                if (!particle.isText && !particle.isRipple) {
+                    particle.x += particle.vx * speedMultiplier;
+                    particle.y += particle.vy * speedMultiplier;
+                    
+                    // Add gravity to non-text particles (also slowed)
+                    particle.vy += 0.1 * speedMultiplier;
+                } else {
+                    // Text and ripples move at normal speed
+                    particle.x += particle.vx;
+                    particle.y += particle.vy;
+                }
+                
+                particle.life -= 1 / particle.maxLife;
+            });
+            
+            // Remove dead particles
+            particles.splice(0, particles.length, ...particles.filter(particle => particle.life > 0));
+        }
+        
+        function drawParticles() {
+            particles.forEach(particle => {
+                ctx.save();
+                ctx.globalAlpha = particle.life;
+                
+                if (particle.isText) {
+                    // Draw text effect
+                    ctx.fillStyle = particle.color;
+                    ctx.font = `${particle.size}px Courier New`;
+                    ctx.textAlign = 'center';
+                    ctx.fillText(particle.text, particle.x, particle.y);
+                } else if (particle.isRipple) {
+                    // Draw time ripple effect
+                    ctx.strokeStyle = particle.color;
+                    ctx.lineWidth = 2;
+                    ctx.globalAlpha = particle.life * 0.3; // More transparent
+                    ctx.beginPath();
+                    ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+                    ctx.stroke();
+                } else {
+                    // Draw particle
+                    ctx.fillStyle = particle.color;
+                    ctx.beginPath();
+                    ctx.arc(particle.x, particle.y, particle.size * particle.life, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                
+                ctx.restore();
+            });
+        }
+
+        function updateGameState() {
+            // Don't update if game is paused
+            if (gameState.paused) return;
+            
+            // Update invincibility
+            if (gameState.invulnerable) {
+                gameState.invulnerableTime--;
+                if (gameState.invulnerableTime <= 0) {
+                    gameState.invulnerable = false;
+                }
+            }
+            
+            // Update shield
+            if (gameState.shieldActive) {
+                gameState.shieldTime--;
+                if (gameState.shieldTime <= 0) {
+                    gameState.shieldActive = false;
+                }
+            }
+            
+            // Update slow motion
+            if (gameState.slowMotionActive) {
+                gameState.slowMotionTime--;
+                if (gameState.slowMotionTime <= 0) {
+                    gameState.slowMotionActive = false;
+                }
+            }
+
+            // Increase score over time
+            if (!gameState.gameOver && gameState.gameStarted) {
+                // Apply score multiplier based on difficulty
+                const difficulty = getCurrentDifficultySettings();
+                gameState.score += difficulty.scoreMultiplier;
+                
+                // Check for difficulty progression (adjusted by difficulty progression rate)
+                const progressionRate = difficulty.difficultyProgressionRate;
+                const adjustedInterval = gameState.baseDifficultyInterval / progressionRate;
+                const scoreThreshold = gameState.lastDifficultyIncrease + 
+                    adjustedInterval + (gameState.difficultyLevel * 60);
+                
+                if (gameState.score >= scoreThreshold && gameState.difficultyLevel < difficultyConfig.maxLevel) {
+                    gameState.difficultyLevel++;
+                    gameState.lastDifficultyIncrease = gameState.score;
+                    
+                    // Create difficulty increase notification
+                    createDifficultyIncreaseEffect();
+                }
+            }
+        }
+
+        function drawUI() {
+            // Health hearts
+            for (let i = 0; i < gameState.maxHealth; i++) {
+                const heartX = 20 + i * 40;
+                const heartY = 60;
+                
+                if (i < gameState.health) {
+                    // Full heart
+                    ctx.fillStyle = '#FF6B6B';
+                } else {
+                    // Empty heart
+                    ctx.fillStyle = '#666';
+                }
+                
+                // Simple heart shape (rectangle for now, can make fancy later)
+                ctx.fillRect(heartX, heartY, 30, 25);
+                ctx.fillStyle = 'white';
+                ctx.font = '20px Courier New';
+                ctx.fillText('♥', heartX + 5, heartY + 20);
+            }
+
+            // Score
+            ctx.fillStyle = 'white';
+            ctx.font = '20px Courier New';
+            const difficulty = getCurrentDifficultySettings();
+            const displayScore = Math.floor(gameState.score / 60);
+            ctx.fillText('Score: ' + displayScore + ` (${difficulty.scoreMultiplier}x)`, canvas.width - 250, 30);
+            
+            // Selected difficulty indicator (top right, below score)
+            if (gameState.difficultySelected && gameState.gameStarted) {
+                ctx.fillStyle = difficulty.color;
+                ctx.font = '16px Courier New';
+                ctx.fillText(`${difficulty.emoji} ${difficulty.name} Mode`, canvas.width - 180, 50);
+            }
+            
+            // Current track display (bottom left)
+            if (gameState.gameStarted) {
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+                ctx.font = '14px Courier New';
+                const trackName = musicTracks[selectedTrackIndex].replace('.mp3', '').replace(/-/g, ' ');
+                ctx.fillText('♪ ' + trackName, 20, canvas.height - 20);
+            }
+            
+            // Difficulty level indicator (top left, below hearts)
+            if (gameState.gameStarted) {
+                ctx.fillStyle = '#FF8800';
+                ctx.font = '18px Courier New';
+                ctx.fillText(`Difficulty: ${gameState.difficultyLevel}`, 20, 120);
+                
+                // Difficulty progress bar
+                const progressWidth = 100;
+                const progressHeight = 8;
+                const progressX = 20;
+                const progressY = 130;
+                
+                // Background
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+                ctx.fillRect(progressX, progressY, progressWidth, progressHeight);
+                
+                // Progress fill
+                const progress = (gameState.difficultyLevel - 1) / (difficultyConfig.maxLevel - 1);
+                const fillWidth = progressWidth * progress;
+                ctx.fillStyle = gameState.difficultyLevel <= 3 ? '#00FF00' : 
+                               gameState.difficultyLevel <= 6 ? '#FFFF00' : 
+                               gameState.difficultyLevel <= 8 ? '#FF8800' : '#FF0000';
+                ctx.fillRect(progressX, progressY, fillWidth, progressHeight);
+                
+                // Border
+                ctx.strokeStyle = 'white';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(progressX, progressY, progressWidth, progressHeight);
+            }
+            
+            // Shield timer (if active)
+            if (gameState.shieldActive) {
+                const shieldSecondsLeft = Math.ceil(gameState.shieldTime / 60);
+                ctx.fillStyle = '#00BFFF';
+                ctx.font = '24px Courier New';
+                ctx.fillText('SHIELD: ' + shieldSecondsLeft + 's', canvas.width - 180, 60);
+                
+                // Shield icon
+                ctx.beginPath();
+                ctx.arc(canvas.width - 200, 50, 8, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            // Double jump charges (if active)
+            if (gameState.doubleJumpActive && gameState.doubleJumpCharges > 0) {
+                ctx.fillStyle = '#9B59B6';
+                ctx.font = '24px Courier New';
+                ctx.fillText('JUMPS: ' + gameState.doubleJumpCharges, canvas.width - 180, 90);
+                
+                // Double jump wing icons
+                for (let i = 0; i < gameState.doubleJumpCharges; i++) {
+                    const wingX = canvas.width - 200 + (i * 12);
+                    const wingY = 80;
+                    
+                    // Simple wing shape
+                    ctx.fillStyle = '#9B59B6';
+                    ctx.beginPath();
+                    ctx.moveTo(wingX, wingY);
+                    ctx.lineTo(wingX - 4, wingY - 4);
+                    ctx.lineTo(wingX - 2, wingY - 2);
+                    ctx.lineTo(wingX + 2, wingY - 2);
+                    ctx.lineTo(wingX + 4, wingY - 4);
+                    ctx.fill();
+                }
+            }
+            
+            // Gun ammo counter (if active)
+            if (gameState.gunActive && gameState.gunCharges > 0) {
+                const yOffset = gameState.doubleJumpActive ? 120 : 90; // Don't overlap with double jump
+                ctx.fillStyle = '#FF4500';
+                ctx.font = '24px Courier New';
+                ctx.fillText('AMMO: ' + gameState.gunCharges, canvas.width - 180, yOffset);
+                
+                // Gun bullet icons
+                for (let i = 0; i < gameState.gunCharges; i++) {
+                    const bulletX = canvas.width - 200 + (i * 8);
+                    const bulletY = yOffset - 10;
+                    
+                    // Simple bullet shape
+                    ctx.fillStyle = '#FFFF00';
+                    ctx.fillRect(bulletX, bulletY, 6, 3);
+                    ctx.fillStyle = '#FF4500';
+                    ctx.fillRect(bulletX, bulletY + 1, 4, 1);
+                }
+            }
+            
+            // Slow motion timer and effects (if active)
+            if (gameState.slowMotionActive) {
+                // Draw blue world tint overlay
+                ctx.save();
+                ctx.globalAlpha = 0.15;
+                ctx.fillStyle = '#00BFFF';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.restore();
+                
+                // Timer display
+                const slowSecondsLeft = Math.ceil(gameState.slowMotionTime / 60);
+                ctx.fillStyle = '#00BFFF';
+                ctx.font = '28px Courier New';
+                ctx.textAlign = 'center';
+                ctx.fillText('TIME DILATION: ' + slowSecondsLeft + 's', canvas.width / 2, 50);
+                
+                // Time ripple effect around timer
+                const rippleTime = Date.now() * 0.01;
+                for (let i = 0; i < 3; i++) {
+                    const rippleRadius = 40 + i * 20 + Math.sin(rippleTime + i) * 10;
+                    ctx.save();
+                    ctx.globalAlpha = 0.3 - i * 0.1;
+                    ctx.strokeStyle = '#00BFFF';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.arc(canvas.width / 2, 50, rippleRadius, 0, Math.PI * 2);
+                    ctx.stroke();
+                    ctx.restore();
+                }
+                
+                ctx.textAlign = 'left'; // Reset text alignment
+            }
+            
+            // Difficulty selection screen
+            if (!gameState.difficultySelected && !gameState.gameOver) {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.92)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                // Title
+                ctx.fillStyle = 'white';
+                ctx.font = '52px Courier New';
+                ctx.textAlign = 'center';
+                ctx.fillText('BOUNCY ADVENTURE', canvas.width / 2, canvas.height / 2 - 200);
+
+                // Subtitle
+                ctx.font = '28px Courier New';
+                ctx.fillStyle = '#FFD700';
+                ctx.fillText('Select Difficulty Level', canvas.width / 2, canvas.height / 2 - 150);
+
+                // Difficulty options
+                const difficultyKeys = ['easy', 'medium', 'hard'];
+                const numbers = ['1', '2', '3'];
+                const barWidth = 440;
+                const barHeight = 64;
+                const barSpacing = 38;
+                const startY = canvas.height / 2 - 60;
+
+                difficultyKeys.forEach((key, index) => {
+                    // Get settings for each difficulty using our function
+                    const tempSelectedDifficulty = gameState.selectedDifficulty;
+                    gameState.selectedDifficulty = key; // Temporarily set to get settings
+                    const setting = getCurrentDifficultySettings();
+                    gameState.selectedDifficulty = tempSelectedDifficulty; // Restore original
+
+                    const yPos = startY + (index * (barHeight + barSpacing));
+                    const barX = canvas.width / 2 - barWidth / 2;
+
+                    // Difficulty box background
+                    ctx.save();
+                    ctx.globalAlpha = 0.28;
+                    ctx.fillStyle = setting.color;
+                    ctx.fillRect(barX, yPos, barWidth, barHeight);
+                    ctx.globalAlpha = 1;
+                    ctx.strokeStyle = setting.color;
+                    ctx.lineWidth = 2.5;
+                    ctx.strokeRect(barX, yPos, barWidth, barHeight);
+                    ctx.restore();
+
+                    // Difficulty option text (centered)
+                    ctx.fillStyle = setting.color;
+                    ctx.font = '32px Courier New';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(`${numbers[index]}. ${setting.emoji} ${setting.name}`, canvas.width / 2, yPos + 30);
+
+                    // Description (centered)
+                    ctx.fillStyle = 'white';
+                    ctx.font = '18px Courier New';
+                    ctx.fillText(setting.description, canvas.width / 2, yPos + 52);
+
+                    // Stats (centered, below bar)
+                    ctx.fillStyle = '#CCCCCC';
+                    ctx.font = '16px Courier New';
+                    ctx.textAlign = 'center';
+                    let statsText = '';
+                    if (key === 'easy') {
+                        statsText = `❤️ ${setting.maxHealth} Hearts  •  🐌 Slower  •  💎 More Power-ups`;
+                    } else if (key === 'medium') {
+                        statsText = `❤️ ${setting.maxHealth} Hearts  •  ⚖️ Balanced  •  💎 Normal Power-ups`;
+                    } else {
+                        statsText = `❤️ ${setting.maxHealth} Hearts  •  ⚡ Faster  •  💎 Fewer Power-ups`;
+                    }
+                    ctx.fillText(statsText, canvas.width / 2, yPos + barHeight + 22);
+                });
+
+                // Instructions
+                ctx.fillStyle = 'white';
+                ctx.font = '22px Courier New';
+                ctx.fillText('Press 1, 2, or 3 to select', canvas.width / 2, startY + 3 * (barHeight + barSpacing) + 20);
+
+                ctx.textAlign = 'left';
+                return; // Don't draw the rest of the UI
+            }
+            
+            // Game start screen
+            if (!gameState.gameStarted && gameState.difficultySelected) {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                const difficulty = getCurrentDifficultySettings();
+                
+                ctx.fillStyle = 'white';
+                ctx.font = '48px Courier New';
+                ctx.textAlign = 'center';
+                ctx.fillText('BOUNCY ADVENTURE', canvas.width / 2, canvas.height / 2 - 80);
+                
+                ctx.fillStyle = difficulty.color;
+                ctx.font = '32px Courier New';
+                ctx.fillText(`${difficulty.emoji} ${difficulty.name} Mode`, canvas.width / 2, canvas.height / 2 - 30);
+                
+                ctx.fillStyle = 'white';
+                ctx.font = '24px Courier New';
+                ctx.fillText('Press SPACE to start!', canvas.width / 2, canvas.height / 2 + 20);
+                ctx.textAlign = 'left';
+                return; // Don't draw the rest of the UI
+            }
+            
+            // Music status (only show if game started but no music)
+            if (gameState.gameStarted && !gameState.musicStarted) {
+                ctx.fillStyle = 'yellow';
+                ctx.font = '24px Courier New';
+                ctx.textAlign = 'center';
+                ctx.fillText('Starting music...', canvas.width / 2, 100);
+                ctx.textAlign = 'left';
+            }
+
+            // Game Over screen
+            if (gameState.gameOver) {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                ctx.fillStyle = 'white';
+                ctx.font = '48px Courier New';
+                ctx.textAlign = 'center';
+                ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2 - 50);
+                
+                ctx.font = '24px Courier New';
+                ctx.fillText('Final Score: ' + Math.floor(gameState.score / 60), canvas.width / 2, canvas.height / 2);
+                ctx.fillText('Press R to Restart', canvas.width / 2, canvas.height / 2 + 60);
+                ctx.textAlign = 'left';
+            }
+            
+            // Pause screen
+            if (gameState.paused && !gameState.gameOver) {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                ctx.fillStyle = 'white';
+                ctx.font = '48px Courier New';
+                ctx.textAlign = 'center';
+                ctx.fillText('PAUSED', canvas.width / 2, canvas.height / 2 - 20);
+                
+                ctx.font = '24px Courier New';
+                ctx.fillText('Press P to Resume', canvas.width / 2, canvas.height / 2 + 30);
+                ctx.textAlign = 'left';
+            }
+        }
+
+        function restartGame() {
+            gameState.health = gameState.maxHealth;
+            gameState.score = 0;
+            gameState.gameOver = false;
+            gameState.paused = false;
+            gameState.invulnerable = false;
+            gameState.invulnerableTime = 0;
+            gameState.gameStarted = false; // Reset game start state
+            gameState.difficultySelected = false; // Reset difficulty selection so user can choose again
+            gameState.selectedDifficulty = 'medium'; // Reset to default
+            gameState.shieldActive = false; // Reset shield state
+            gameState.shieldTime = 0;
+            gameState.doubleJumpActive = false; // Reset double jump state
+            gameState.doubleJumpCharges = 0;
+            gameState.gunActive = false; // Reset gun state
+            gameState.gunCharges = 0; // Reset gun charges
+            gameState.difficultyLevel = 1; // Reset difficulty
+            gameState.lastDifficultyIncrease = 0;
+            gameState.slowMotionActive = false; // Reset slow motion state
+            gameState.slowMotionTime = 0;
+            
+            // Reset player
+            player.x = 100;
+            player.y = 300;
+            player.vx = 0;
+            player.vy = 0;
+            player.grounded = false;
+            player.color = '#FF6B6B';
+            player.trail = [];
+            player.jumping = false;
+            player.ducking = false;
+            player.charging = false;
+            player.chargeTime = 0;
+            player.maxChargeTime = 60;
+            
+            // Clear obstacles
+            obstacles.length = 0;
+            
+            // Clear power-ups
+            powerups.length = 0;
+            
+            // Clear particles
+            particles.length = 0;
+            
+            // Clear projectiles
+            projectiles.length = 0;
+            
+            // Clear background elements
+            backgroundElements.length = 0;
+            elementSpawnTimer = 0;
+            
+            // Reset obstacle spawn timer
+            obstacleSpawnTimer = 0;
+            
+            // Stop current music and select new track
+            stopMusic();
+            selectRandomTrack();
+        }
+        
+        // Physics constants
+        const gravity = 0.8;
+        const friction = 0.85;
+        const jumpPower = -16;
+        const moveSpeed = 0.8;
+        const groundY = canvas.height - 60;
+        
+        // Input handling
+        window.addEventListener('keydown', (e) => {
+            // Prevent space bar from scrolling the page
+            if (e.code === 'Space') {
+                e.preventDefault();
+            }
+            
+            keys[e.code] = true;
+            
+            // Difficulty selection (before game starts)
+            if (!gameState.difficultySelected && !gameState.gameOver) {
+                if (e.code === 'Digit1') {
+                    selectDifficulty('easy');
+                    return;
+                } else if (e.code === 'Digit2') {
+                    selectDifficulty('medium');
+                    return;
+                } else if (e.code === 'Digit3') {
+                    selectDifficulty('hard');
+                    return;
+                }
+            }
+            
+            // Start game on space bar (only after difficulty is selected)
+            if (e.code === 'Space' && !gameState.gameStarted && gameState.difficultySelected && !gameState.gameOver) {
+                startGame();
+                return; // Don't process the space as a jump on the same frame
+            }
+            
+            // Start jump immediately (only if grounded, not ducking, and game is active)
+            if (e.code === 'Space' && player.grounded && !player.ducking && !gameState.gameOver && !gameState.paused && gameState.gameStarted) {
+                // Start jumping immediately
+                player.vy = -8; // Reduced from -10 to -8 for even lower minimum jump height
+                player.grounded = false;
+                player.jumping = true;
+                player.charging = false; // Reset any charging state
+                player.chargeTime = 0;
+                
+                // Play jump sound
+                playSound('bounce');
+            }
+            
+            // Double jump (only if in air, has charges, not ducking, and game is active)
+            else if (e.code === 'Space' && !player.grounded && gameState.doubleJumpCharges > 0 && !player.ducking && !gameState.gameOver && !gameState.paused && gameState.gameStarted) {
+                // Use a double jump charge
+                gameState.doubleJumpCharges--;
+                
+                // Apply double jump (slightly less powerful than regular jump)
+                player.vy = -12; // Stronger than regular jump for mid-air mobility
+                player.jumping = true;
+                player.charging = false;
+                player.chargeTime = 0;
+                
+                // Create visual effect for double jump
+                createDoubleJumpEffect(player.x + player.width/2, player.y + player.height/2);
+                
+                // Play jump sound
+                playSound('bounce');
+                
+                // Check if all charges used
+                if (gameState.doubleJumpCharges === 0) {
+                    gameState.doubleJumpActive = false;
+                }
+            }
+            
+            // Restart game
+            if (e.code === 'KeyR' && gameState.gameOver) {
+                restartGame();
+            }
+            
+            // Pause/Unpause game
+            if (e.code === 'KeyP' && !gameState.gameOver) {
+                gameState.paused = !gameState.paused;
+                if (gameState.paused) {
+                    stopMusic();
+                } else if (gameState.musicStarted) {
+                    startMusic();
+                }
+            }
+            
+            // Shoot gun
+            if (e.code === 'KeyX' && gameState.gunActive && gameState.gunCharges > 0 && !gameState.gameOver && !gameState.paused && gameState.gameStarted) {
+                fireProjectile();
+            }
+        });
+        
+        window.addEventListener('keyup', (e) => {
+            keys[e.code] = false;
+            
+            // Stop jump boost when space is released
+            if (e.code === 'Space' && player.jumping) {
+                player.jumping = false;
+            }
+        });
+        
+        // Right-click shooting support
+        window.addEventListener('contextmenu', (e) => {
+            e.preventDefault(); // Prevent context menu
+            if (gameState.gunActive && gameState.gunCharges > 0 && !gameState.gameOver && !gameState.paused && gameState.gameStarted) {
+                fireProjectile();
+            }
+        });
+        
+        // Mouse click shooting support
+        window.addEventListener('mousedown', (e) => {
+            if (e.button === 2) { // Right mouse button
+                e.preventDefault();
+                if (gameState.gunActive && gameState.gunCharges > 0 && !gameState.gameOver && !gameState.paused && gameState.gameStarted) {
+                    fireProjectile();
+                }
+            }
+        });
+        
+        // Mouse click support for difficulty selection
+        canvas.addEventListener('click', (e) => {
+            // Only handle clicks when difficulty selection screen is active
+            if (!gameState.difficultySelected && !gameState.gameOver) {
+                // Get mouse position relative to canvas
+                const rect = canvas.getBoundingClientRect();
+                const mouseX = e.clientX - rect.left;
+                const mouseY = e.clientY - rect.top;
+                
+                // Use the same dimensions as in the drawing code
+                const barWidth = 440;
+                const barHeight = 64;
+                const barSpacing = 38;
+                const startY = canvas.height / 2 - 60;
+                const barX = canvas.width / 2 - barWidth / 2;
+                
+                // Check each difficulty bar
+                const difficultyKeys = ['easy', 'medium', 'hard'];
+                
+                for (let i = 0; i < difficultyKeys.length; i++) {
+                    const yPos = startY + (i * (barHeight + barSpacing));
+                    
+                    // Check if click is within this bar's bounds
+                    if (mouseX >= barX && mouseX <= barX + barWidth && 
+                        mouseY >= yPos && mouseY <= yPos + barHeight) {
+                        selectDifficulty(difficultyKeys[i]);
+                        break;
+                    }
+                }
+            }
+        });
+        
+        function updatePlayer() {
+            // Don't update if game is paused or not started
+            if (gameState.paused || !gameState.gameStarted) return;
+            
+            // Ducking mechanics (can't duck while jumping)
+            if (keys['ArrowDown'] && player.grounded && !gameState.gameOver) {
+                player.ducking = true;
+            } else {
+                player.ducking = false;
+            }
+            
+            // Update player height based on ducking state
+            if (player.ducking) {
+                const oldHeight = player.height;
+                player.height = player.duckHeight;
+                // Adjust Y position to keep player on ground
+                if (oldHeight !== player.height) {
+                    player.y += (oldHeight - player.height);
+                }
+            } else {
+                const oldHeight = player.height;
+                player.height = player.normalHeight;
+                // Adjust Y position when standing back up
+                if (oldHeight !== player.height && player.grounded) {
+                    player.y -= (player.height - oldHeight);
+                }
+            }
+            
+            // Horizontal movement
+            if (keys['ArrowLeft'] && !gameState.gameOver) {
+                player.vx -= moveSpeed;
+            }
+            if (keys['ArrowRight'] && !gameState.gameOver) {
+                player.vx += moveSpeed;
+            }
+            
+            // Reduce speed when ducking for balance
+            if (player.ducking) {
+                player.vx *= 0.7; // 30% speed reduction when ducking
+            }
+            
+            // Jump boost while space is held (only while going up)
+            if (keys['Space'] && player.jumping && player.vy < 0) {
+                player.vy -= 0.6; // Increased from 0.3 to 0.6 for better balance - slower than 1.0 but still reaches max height
+                player.vy = Math.max(player.vy, -20); // Reduced from -25 to -20 for lower maximum jump height
+            }
+            
+            // Apply gravity only when not grounded
+            if (!player.grounded) {
+                player.vy += gravity;
+            }
+            
+            // Apply velocities
+            player.x += player.vx;
+            player.y += player.vy;
+            
+            // Ground collision with small tolerance to prevent micro-bounces
+            if (player.y + player.height >= groundY - 1) {
+                player.y = groundY - player.height;
+                if (player.vy > 0) { // Only reset if falling
+                    player.vy = 0;
+                }
+                player.grounded = true;
+                player.jumping = false; // Reset jump state when landing
+                
+                // Bounce effect when landing (only if we were falling)
+                if (player.vy > 2) {
+                    player.width = 45;
+                    player.height = 35;
+                    setTimeout(() => {
+                        player.width = 40;
+                        player.height = 40;
+                    }, 150);
+                }
+            } else {
+                player.grounded = false;
+            }
+            
+            // Side boundaries - keep player on screen
+            if (player.x > canvas.width - player.width) {
+                player.x = canvas.width - player.width;
+                player.vx = 0; // Stop horizontal movement when hitting boundary
+            } else if (player.x < 0) {
+                player.x = 0;
+                player.vx = 0; // Stop horizontal movement when hitting boundary
+            }
+            
+            // Apply friction
+            player.vx *= friction;
+            
+            // Add to trail (with invincibility flashing effect)
+            if (!gameState.invulnerable || Math.floor(gameState.invulnerableTime / 10) % 2) {
+                player.trail.push({
+                    x: player.x + player.width/2,
+                    y: player.y + player.height/2,
+                    life: 1.0
+                });
+            }
+            
+            // Update trail
+            player.trail = player.trail.filter(particle => {
+                particle.life -= 0.05;
+                return particle.life > 0;
+            });
+        }
+        
+        function drawPlayer() {
+            // Skip drawing if invulnerable and on an "off" blink frame
+            if (gameState.invulnerable && Math.floor(gameState.invulnerableTime / 8) % 2) {
+                return; // Don't draw player every 8 frames during invincibility
+            }
+            
+            // Draw trail
+            player.trail.forEach(particle => {
+                const alpha = particle.life;
+                const size = particle.life * 20;
+                
+                ctx.save();
+                ctx.globalAlpha = alpha * 0.3;
+                ctx.fillStyle = player.color;
+                ctx.beginPath();
+                ctx.arc(particle.x, particle.y, size/2, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            });
+            
+            // Draw shield bubble if active
+            if (gameState.shieldActive) {
+                const centerX = player.x + player.width/2;
+                const centerY = player.y + player.height/2;
+                const shieldRadius = 35 + Math.sin(Date.now() * 0.01) * 3; // Gentle pulsing
+                
+                // Outer shield ring
+                ctx.save();
+                ctx.globalAlpha = 0.3;
+                ctx.strokeStyle = '#00BFFF';
+                ctx.lineWidth = 4;
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, shieldRadius, 0, Math.PI * 2);
+                ctx.stroke();
+                
+                // Inner shield glow
+                ctx.globalAlpha = 0.1;
+                ctx.fillStyle = '#00BFFF';
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, shieldRadius, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Shield sparkles
+                ctx.globalAlpha = 0.6;
+                ctx.fillStyle = '#FFFFFF';
+                for (let i = 0; i < 6; i++) {
+                    const angle = (Date.now() * 0.005 + i * Math.PI/3);
+                    const sparkleX = centerX + Math.cos(angle) * (shieldRadius - 5);
+                    const sparkleY = centerY + Math.sin(angle) * (shieldRadius - 5);
+                    ctx.beginPath();
+                    ctx.arc(sparkleX, sparkleY, 2, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                ctx.restore();
+            }
+            
+            // Determine which character image to use
+            let currentCharacterImage;
+            if (player.ducking) {
+                currentCharacterImage = characterImages.crouch;
+            } else if (!player.grounded) {
+                currentCharacterImage = characterImages.jump;
+            } else {
+                currentCharacterImage = characterImages.default;
+            }
+            
+            // Add some personality - squash when falling, stretch when jumping, extra squash when ducking
+            let squashX = 1;
+            let squashY = 1;
+            if (player.ducking) {
+                squashY = 0.7; // Slightly squashed when ducking
+            } else if (player.vy > 5) {
+                squashY = 0.9; // Slightly squashed when falling
+                squashX = 1.1;
+            } else if (player.vy < -5) {
+                squashY = 1.1; // Slightly stretched when jumping
+                squashX = 0.9;
+            }
+            
+            ctx.save();
+            
+            // Apply invulnerability color tint if needed
+            if (gameState.invulnerable) {
+                ctx.globalAlpha = 0.7;
+                ctx.filter = 'hue-rotate(30deg) brightness(1.2)'; // Slight red tint and brighter
+            }
+            
+            // Apply squash/stretch transform
+            ctx.translate(player.x + player.width/2, player.y + player.height/2);
+            ctx.scale(squashX, squashY);
+            ctx.translate(-player.width/2, -player.height/2);
+            
+            // Draw the character image if loaded, fallback to rectangle if not
+            if (currentCharacterImage && currentCharacterImage.complete) {
+                ctx.drawImage(currentCharacterImage, 0, 0, player.width, player.height);
+            } else {
+                // Fallback to rectangle (original drawing code)
+                ctx.fillStyle = player.color;
+                ctx.strokeStyle = '#FF4757';
+                ctx.lineWidth = 3;
+                
+                ctx.fillRect(0, 0, player.width, player.height);
+                ctx.strokeRect(0, 0, player.width, player.height);
+                
+                // Eyes! (adjust position when ducking)
+                const eyeY = player.ducking ? 4 : 8;
+                
+                ctx.fillStyle = 'white';
+                ctx.fillRect(8, eyeY, 8, 8);
+                ctx.fillRect(24, eyeY, 8, 8);
+                ctx.fillStyle = 'black';
+                ctx.fillRect(10, eyeY + 2, 4, 4);
+                ctx.fillRect(26, eyeY + 2, 4, 4);
+            }
+            
+            ctx.restore();
+        }
+        
+        function drawBackground() {
+            // Only start parallax scrolling when game has started
+            if (gameState.gameStarted && !gameState.paused) {
+                // Slow parallax movement for atmospheric effect
+                backgroundOffset -= 0.2; // Very slow background movement
+            }
+            
+            ctx.save();
+            
+            // Reduce background opacity to make obstacles more visible
+            ctx.globalAlpha = 0.9; // Increased from 0.8 to 0.9 for even more background visibility
+            
+            // Draw main background (tiled to fit, maintaining aspect ratio)
+            if (backgroundImg.complete) {
+                const bgWidth = backgroundImg.naturalWidth;
+                const bgHeight = backgroundImg.naturalHeight;
+                
+                // Calculate scale to fit height while maintaining aspect ratio
+                const scale = canvas.height / bgHeight;
+                const scaledWidth = bgWidth * scale;
+                
+                // Tile horizontally if needed
+                for (let x = 0; x < canvas.width; x += scaledWidth) {
+                    ctx.drawImage(backgroundImg, x, 0, scaledWidth, canvas.height);
+                }
+            }
+            
+            ctx.restore();
+            
+            // Draw ground floor as repeating texture (keep at full opacity)
+            if (groundFloorImg.complete) {
+                const gfWidth = groundFloorImg.naturalWidth;
+                const gfHeight = groundFloorImg.naturalHeight;
+                const groundHeight = canvas.height - groundY;
+                
+                // Scale to fit our ground height while maintaining aspect ratio
+                const scale = groundHeight / gfHeight;
+                const scaledWidth = gfWidth * scale;
+                
+                // Tile across the width
+                for (let x = 0; x < canvas.width; x += scaledWidth) {
+                    ctx.drawImage(groundFloorImg, x, groundY, scaledWidth, groundHeight);
+                }
+            }
+            
+            // Fallback: simple colored ground if images aren't loaded
+            if (!groundFloorImg.complete) {
+                ctx.fillStyle = '#4ECDC4';
+                ctx.fillRect(0, groundY, canvas.width, canvas.height - groundY);
+            }
+            
+            // Add a subtle overlay to further reduce background contrast
+            ctx.save();
+            ctx.globalAlpha = 0.15;
+            ctx.fillStyle = '#87CEEB'; // Light blue overlay
+            ctx.fillRect(0, 0, canvas.width, groundY);
+            ctx.restore();
+        }
+        
+        function gameLoop() {
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw everything
+            drawBackground();
+            drawBackgroundElements(); // Draw background elements BEFORE player
+            updatePlayer();
+            spawnBackgroundElement();
+            updateBackgroundElements();
+            simpleObstacleSpawning();
+            updateObstacles();
+            updatePowerups();
+            updateProjectiles();
+            updateParticles();
+            handleCollisions();
+            checkProjectileCollisions();
+            updateGameState();
+            drawPlayer();
+            drawObstacles();
+            drawPowerups();
+            drawProjectiles();
+            drawParticles();
+            drawUI();
+            
+            // Continue the loop
+            requestAnimationFrame(gameLoop);
+        }
+        
+        function createDifficultyIncreaseEffect() {
+            // Create "DIFFICULTY INCREASED!" text effect
+            particles.push({
+                x: canvas.width / 2,
+                y: canvas.height / 2 - 50,
+                vx: 0,
+                vy: -1,
+                life: 1.0,
+                maxLife: 180, // 3 seconds
+                color: '#FF8800',
+                size: 28,
+                text: 'DIFFICULTY INCREASED!',
+                isText: true
+            });
+            
+            // Create level indicator
+            particles.push({
+                x: canvas.width / 2,
+                y: canvas.height / 2 - 10,
+                vx: 0,
+                vy: -0.5,
+                life: 1.0,
+                maxLife: 180, // 3 seconds
+                color: '#FFFF00',
+                size: 20,
+                text: `LEVEL ${gameState.difficultyLevel}`,
+                isText: true
+            });
+            
+            // Create burst of orange particles
+            for (let i = 0; i < 20; i++) {
+                const angle = (i / 20) * Math.PI * 2;
+                const speed = 2 + Math.random() * 3;
+                particles.push({
+                    x: canvas.width / 2,
+                    y: canvas.height / 2,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    life: 1.0,
+                    maxLife: 120, // 2 seconds
+                    color: '#FF8800',
+                    size: 3 + Math.random() * 4
+                });
+            }
+        }
+        
+        function updateProjectiles() {
+            if (gameState.paused) return;
+            
+            projectiles.forEach(projectile => {
+                // Move projectile (projectiles are NOT affected by slow motion - they cut through time)
+                projectile.x += projectile.speed;
+                
+                // Add trail effect
+                projectile.trail.push({
+                    x: projectile.x + projectile.width/2,
+                    y: projectile.y + projectile.height/2,
+                    life: 1.0
+                });
+                
+                // Update trail
+                projectile.trail = projectile.trail.filter(particle => {
+                    particle.life -= 0.1;
+                    return particle.life > 0;
+                });
+                
+                // Limit trail length
+                if (projectile.trail.length > 8) {
+                    projectile.trail.shift();
+                }
+            });
+            
+            // Remove off-screen projectiles
+            projectiles.splice(0, projectiles.length, ...projectiles.filter(proj => proj.x < canvas.width + 50));
+        }
+        
+        function drawProjectiles() {
+            projectiles.forEach(projectile => {
+                // Draw trail
+                projectile.trail.forEach(particle => {
+                    const alpha = particle.life;
+                    const size = particle.life * 6;
+                    
+                    ctx.save();
+                    ctx.globalAlpha = alpha * 0.6;
+                    ctx.fillStyle = projectile.color;
+                    ctx.beginPath();
+                    ctx.arc(particle.x, particle.y, size/2, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                });
+                
+                // Draw projectile with glow effect
+                ctx.save();
+                ctx.shadowColor = projectile.color;
+                ctx.shadowBlur = 10;
+                ctx.fillStyle = projectile.color;
+                
+                // Main projectile body
+                ctx.fillRect(projectile.x, projectile.y, projectile.width, projectile.height);
+                
+                // Bright core
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(projectile.x + 2, projectile.y + 1, projectile.width - 4, projectile.height - 2);
+                
+                ctx.restore();
+            });
+        }
+        
+        function checkProjectileCollisions() {
+            if (gameState.gameOver) return;
+            
+            // Check projectile vs obstacle collisions
+            for (let i = projectiles.length - 1; i >= 0; i--) {
+                const projectile = projectiles[i];
+                
+                for (let j = obstacles.length - 1; j >= 0; j--) {
+                    const obstacle = obstacles[j];
+                    
+                    // Check collision
+                    if (checkCollision(projectile, obstacle)) {
+                        // Create explosion effect
+                        createExplosionEffect(obstacle.x + obstacle.width/2, obstacle.y + obstacle.height/2);
+                        
+                        // Award bonus score for shooting
+                        gameState.score += 50; // Bonus points for shooting obstacles
+                        
+                        // Remove both projectile and obstacle
+                        projectiles.splice(i, 1);
+                        obstacles.splice(j, 1);
+                        
+                        // Play explosion sound (reuse damage sound)
+                        playSound('damage');
+                        
+                        break; // Exit obstacle loop since projectile is destroyed
+                    }
+                }
+            }
+        }
+        
+        function createExplosionEffect(x, y) {
+            // Create explosion particles
+            for (let i = 0; i < 15; i++) {
+                const angle = (i / 15) * Math.PI * 2;
+                const speed = 3 + Math.random() * 5;
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    life: 1.0,
+                    maxLife: 60, // 1 second explosion
+                    color: Math.random() > 0.5 ? '#FF4500' : '#FFFF00',
+                    size: 4 + Math.random() * 6
+                });
+            }
+            
+            // Create explosion text
+            particles.push({
+                x: x,
+                y: y,
+                vx: 0,
+                vy: -1,
+                life: 1.0,
+                maxLife: 60,
+                color: '#FFFFFF',
+                size: 16,
+                text: 'BOOM!',
+                isText: true
+            });
+        }
+        
+        // Start the game!
+        gameLoop();
+    </script>
+</body>
+</html> 

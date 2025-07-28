@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Obstacle Test - Bouncy Adventure</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Courier New', monospace;
+            color: white;
+        }
+        
+        .test-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+        }
+        
+        .obstacle-test {
+            border: 3px solid #fff;
+            border-radius: 10px;
+            background: linear-gradient(180deg, #87CEEB 0%, #98FB98 100%);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .obstacle-info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.7);
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 14px;
+            z-index: 10;
+        }
+        
+        .controls {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        button {
+            background: #FF6B6B;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+        }
+        
+        button:hover {
+            background: #FF5252;
+        }
+        
+        button.active {
+            background: #4CAF50;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎮 Obstacle Test Environment</h1>
+    <p>Test each obstacle type individually to verify images match movement patterns</p>
+    
+    <div class="controls">
+        <button onclick="togglePause()">⏯️ Pause/Resume</button>
+        <button onclick="changeSpeed(-0.5)">🐌 Slower</button>
+        <button onclick="changeSpeed(0.5)">🐰 Faster</button>
+        <button onclick="resetSpeed()">🔄 Reset Speed</button>
+        <span id="speedDisplay">Speed: 1.0x</span>
+    </div>
+    
+    <div class="test-container">
+        <!-- CHARACTER Test -->
+        <div class="obstacle-test">
+            <div class="obstacle-info">
+                <strong>CHARACTER</strong><br>
+                States: Default/Jump/Crouch<br>
+                Animation: Bounce + Squash/Stretch
+            </div>
+            <canvas id="characterCanvas" width="400" height="200"></canvas>
+        </div>
+        
+        <!-- SLIDER Test -->
+        <div class="obstacle-test">
+            <div class="obstacle-info">
+                <strong>SLIDER</strong><br>
+                Movement: Horizontal<br>
+                Should be: Electric Barrier
+            </div>
+            <canvas id="sliderCanvas" width="400" height="200"></canvas>
+        </div>
+        
+        <!-- BOUNCER Test -->
+        <div class="obstacle-test">
+            <div class="obstacle-info">
+                <strong>BOUNCER</strong><br>
+                Movement: Vertical Sine Wave<br>
+                Should be: Plasma Orb
+            </div>
+            <canvas id="bouncerCanvas" width="400" height="200"></canvas>
+        </div>
+        
+        <!-- SWEEPER Test -->
+        <div class="obstacle-test">
+            <div class="obstacle-info">
+                <strong>SWEEPER</strong><br>
+                Movement: Diagonal<br>
+                Should be: Lightning Rod
+            </div>
+            <canvas id="sweeperCanvas" width="400" height="200"></canvas>
+        </div>
+        
+        <!-- PULSER Test -->
+        <div class="obstacle-test">
+            <div class="obstacle-info">
+                <strong>PULSER</strong><br>
+                Movement: Pulse/Scale<br>
+                Should be: Energy Field
+            </div>
+            <canvas id="pulserCanvas" width="400" height="200"></canvas>
+        </div>
+        
+        <!-- CRAWLER Test -->
+        <div class="obstacle-test">
+            <div class="obstacle-info">
+                <strong>CRAWLER</strong><br>
+                Movement: Ground Level<br>
+                Should be: Electric Arc
+            </div>
+            <canvas id="crawlerCanvas" width="400" height="200"></canvas>
+        </div>
+        
+        <!-- FLOATER Test -->
+        <div class="obstacle-test">
+            <div class="obstacle-info">
+                <strong>FLOATER</strong><br>
+                Movement: High Air<br>
+                Should be: Plasma Cloud
+            </div>
+            <canvas id="floaterCanvas" width="400" height="200"></canvas>
+        </div>
+    </div>
+    
+    <script>
+        // Test environment variables
+        let isPaused = false;
+        let speedMultiplier = 1.0;
+        let animationTime = 0;
+        
+        // Obstacle definitions (copied from main game)
+        const obstacleTypes = {
+            SLIDER: {
+                color: '#FF4757',
+                width: 30,
+                height: 60,
+                speed: -2, // Slower for testing
+                movement: 'horizontal'
+            },
+            BOUNCER: {
+                color: '#FF6B35',
+                width: 75,
+                height: 75,
+                speed: -1,
+                movement: 'vertical',
+                amplitude: 120,
+                frequency: 0.02
+            },
+            SWEEPER: {
+                color: '#C44569',
+                width: 65,
+                height: 65,
+                speed: -1.75,
+                movement: 'diagonal'
+            },
+            PULSER: {
+                color: '#F8B500',
+                width: 40,
+                height: 40,
+                speed: -1.25,
+                movement: 'pulse',
+                pulseSpeed: 0.05 // Slower pulse
+            },
+            CRAWLER: {
+                color: '#6C5CE7',
+                width: 40,
+                height: 40,
+                speed: -2.5,
+                movement: 'ground'
+            },
+            FLOATER: {
+                color: '#00D2D3',
+                width: 80,
+                height: 30,
+                speed: -1.5,
+                movement: 'air'
+            }
+        };
+        
+        // Load obstacle images
+        const obstacleImages = {
+            slider: new Image(),
+            bouncer: new Image(),
+            sweeper: new Image(),
+            pulser: new Image(),
+            crawler: new Image(),
+            floater: new Image()
+        };
+        
+        obstacleImages.slider.src = 'assets/images/obstacles/slider.png';
+        obstacleImages.bouncer.src = 'assets/images/obstacles/bouncer.png';
+        obstacleImages.sweeper.src = 'assets/images/obstacles/sweeper.png';
+        obstacleImages.pulser.src = 'assets/images/obstacles/pulser.png';
+        obstacleImages.crawler.src = 'assets/images/obstacles/crawler.png';
+        obstacleImages.floater.src = 'assets/images/obstacles/floater.png';
+        
+        // Load character images
+        const characterImages = {
+            default: new Image(),
+            jump: new Image(),
+            crouch: new Image()
+        };
+        
+        characterImages.default.src = 'assets/images/main-character/main-character.png';
+        characterImages.jump.src = 'assets/images/main-character/main-character-jump.png';
+        characterImages.crouch.src = 'assets/images/main-character/main-character-crouch.png';
+        
+        // Get all canvases
+        const canvases = {
+            character: document.getElementById('characterCanvas'),
+            slider: document.getElementById('sliderCanvas'),
+            bouncer: document.getElementById('bouncerCanvas'),
+            sweeper: document.getElementById('sweeperCanvas'),
+            pulser: document.getElementById('pulserCanvas'),
+            crawler: document.getElementById('crawlerCanvas'),
+            floater: document.getElementById('floaterCanvas')
+        };
+        
+        // Get contexts
+        const contexts = {};
+        Object.keys(canvases).forEach(key => {
+            contexts[key] = canvases[key].getContext('2d');
+        });
+        
+        // Create test obstacles
+        const testObstacles = {};
+        Object.keys(obstacleTypes).forEach(type => {
+            const template = obstacleTypes[type];
+            testObstacles[type.toLowerCase()] = {
+                type: type,
+                x: 400, // Start off-screen right
+                y: 100, // Will be adjusted per movement type
+                width: template.width,
+                height: template.height,
+                speed: template.speed,
+                color: template.color,
+                movement: template.movement,
+                time: 0,
+                ...template
+            };
+        });
+        
+        // Create test character
+        const testCharacter = {
+            x: 200, // Center of canvas
+            y: 100,
+            width: 40,
+            height: 40,
+            vx: 0,
+            vy: 0,
+            grounded: false,
+            ducking: false,
+            normalHeight: 40,
+            duckHeight: 20,
+            bounceSpeed: -12, // Jump power
+            gravity: 0.8,
+            groundY: 170, // Ground level
+            time: 0,
+            trail: [] // For trail effect
+        };
+        
+        // Control functions
+        function togglePause() {
+            isPaused = !isPaused;
+        }
+        
+        function changeSpeed(delta) {
+            speedMultiplier = Math.max(0.1, Math.min(3.0, speedMultiplier + delta));
+            updateSpeedDisplay();
+        }
+        
+        function resetSpeed() {
+            speedMultiplier = 1.0;
+            updateSpeedDisplay();
+        }
+        
+        function updateSpeedDisplay() {
+            document.getElementById('speedDisplay').textContent = `Speed: ${speedMultiplier.toFixed(1)}x`;
+        }
+        
+        // Drawing functions
+        function drawSingleObstacle(ctx, obstacle) {
+            // Handle pulsing obstacles
+            const width = obstacle.currentWidth || obstacle.width;
+            const height = obstacle.currentHeight || obstacle.height;
+            const x = obstacle.x - (width - obstacle.width) / 2;
+            const y = obstacle.y - (height - obstacle.height) / 2;
+            
+            // Try to draw obstacle using its image first
+            let imageDrawn = false;
+            const obstacleType = obstacle.type.toLowerCase();
+            
+            if (obstacleImages[obstacleType] && obstacleImages[obstacleType].complete) {
+                // Calculate pulsing effect for visibility (subtle)
+                const pulseTime = Date.now() * 0.003; // Slow pulse
+                const pulseIntensity = 0.8 + Math.sin(pulseTime) * 0.2; // Pulse between 0.6 and 1.0
+                
+                // Define glow colors for each obstacle type
+                const glowColors = {
+                    slider: '#FF4757',    // Red glow for Steam Guard Robot
+                    bouncer: '#00BFFF',   // Blue glow for Spring Automaton  
+                    sweeper: '#FFD700',   // Yellow glow for Clockwork Falcon
+                    pulser: '#FF00FF',    // Magenta glow for Steam Heart Engine
+                    crawler: '#8A2BE2',   // Purple glow for Mechanical Spider
+                    floater: '#00CED1'    // Cyan glow for Steam Balloon Drone
+                };
+                
+                const glowColor = glowColors[obstacleType] || '#FFFFFF';
+                
+                ctx.save();
+                
+                // Create glow effect (colored shadow)
+                ctx.shadowColor = glowColor;
+                ctx.shadowBlur = 8 * pulseIntensity; // Pulsing glow intensity
+                ctx.shadowOffsetX = 0;
+                ctx.shadowOffsetY = 0;
+                
+                // Flip character images horizontally so they face left (direction of movement)
+                ctx.scale(-1, 1);
+                
+                // Draw the main image with glow
+                ctx.drawImage(obstacleImages[obstacleType], -x - width, y, width, height);
+                
+                ctx.restore();
+                imageDrawn = true;
+            }
+            
+            // Fallback to colored rectangles if image not available
+            if (!imageDrawn) {
+                ctx.fillStyle = obstacle.color;
+                ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+                ctx.lineWidth = 2;
+                
+                ctx.fillRect(x, y, width, height);
+                ctx.strokeRect(x, y, width, height);
+                
+                // Add type label for fallback
+                ctx.fillStyle = 'white';
+                ctx.font = '12px Courier New';
+                ctx.textAlign = 'center';
+                ctx.fillText(obstacle.type, x + width/2, y + height/2 + 4);
+                ctx.textAlign = 'left';
+            }
+            
+            // Add visual flair based on type (only for non-image obstacles)
+            if (!imageDrawn) {
+                if (obstacle.movement === 'vertical') {
+                    // Add motion lines for BOUNCER
+                    ctx.strokeStyle = obstacle.color;
+                    ctx.lineWidth = 1;
+                    for (let i = 0; i < 3; i++) {
+                        ctx.beginPath();
+                        ctx.moveTo(x - 10 - i*5, y + height/2);
+                        ctx.lineTo(x - 5 - i*5, y + height/2);
+                        ctx.stroke();
+                    }
+                }
+                
+                if (obstacle.movement === 'pulse') {
+                    // Add pulse rings for PULSER
+                    ctx.strokeStyle = obstacle.color;
+                    ctx.lineWidth = 2;
+                    ctx.globalAlpha = 0.3;
+                    ctx.beginPath();
+                    ctx.arc(x + width/2, y + height/2, width/2 + 10, 0, Math.PI * 2);
+                    ctx.stroke();
+                    ctx.globalAlpha = 1;
+                }
+            }
+        }
+        
+        function updateObstacle(obstacle, canvasWidth, canvasHeight) {
+            if (isPaused) return;
+            
+            const groundY = canvasHeight - 30;
+            obstacle.time += speedMultiplier;
+            
+            // Reset position if off-screen
+            if (obstacle.x < -obstacle.width - 50) {
+                obstacle.x = canvasWidth + 50;
+            }
+            
+            // Base horizontal movement
+            obstacle.x += obstacle.speed * speedMultiplier;
+            
+            // Special movement patterns
+            switch(obstacle.movement) {
+                case 'vertical':
+                    // BOUNCER bounces from ground level up to amplitude height
+                    const bounceOffset = Math.abs(Math.sin(obstacle.time * obstacle.frequency)) * obstacle.amplitude;
+                    obstacle.y = groundY - obstacle.height + 15 - bounceOffset; // +15 to ensure it touches ground, then bounce up
+                    break;
+                    
+                case 'diagonal':
+                    // SWEEPER (clockwork falcon) flies at medium height requiring ducking or careful timing
+                    const baseHeight = groundY - obstacle.height - 60; // Reduced from 80 to 60 pixels above ground (adjusted for smaller test canvas)
+                    obstacle.y = baseHeight + Math.sin(obstacle.time * 0.02) * 20; // Gentle swooping motion
+                    break;
+                    
+                case 'pulse':
+                    const pulse = Math.sin(obstacle.time * obstacle.pulseSpeed);
+                    obstacle.currentWidth = obstacle.width + pulse * 20;
+                    obstacle.currentHeight = obstacle.height + pulse * 20;
+                    // Position PULSER at mid-jump height for timing-based challenge
+                    obstacle.y = groundY - obstacle.height - 70; // Middle of jump range (adjusted for smaller test canvas)
+                    break;
+                    
+                case 'ground':
+                    // CRAWLER sits on ground level with slight adjustment to touch ground properly
+                    obstacle.y = groundY - obstacle.height + 5; // Move down 5 pixels to touch ground
+                    break;
+                    
+                case 'air':
+                    obstacle.y = groundY - obstacle.height - 80; // High in air
+                    break;
+                    
+                default: // horizontal
+                    obstacle.y = groundY - obstacle.height - 30;
+            }
+        }
+        
+        function drawGround(ctx, canvasWidth, canvasHeight) {
+            const groundY = canvasHeight - 30;
+            ctx.fillStyle = '#4ECDC4';
+            ctx.fillRect(0, groundY, canvasWidth, canvasHeight - groundY);
+        }
+        
+        function drawTestCanvas(canvasKey) {
+            const canvas = canvases[canvasKey];
+            const ctx = contexts[canvasKey];
+            const obstacle = testObstacles[canvasKey];
+            
+            if (!canvas || !ctx || !obstacle) return;
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw background gradient
+            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, '#87CEEB');
+            gradient.addColorStop(1, '#98FB98');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw ground
+            drawGround(ctx, canvas.width, canvas.height);
+            
+            // Update and draw obstacle
+            updateObstacle(obstacle, canvas.width, canvas.height);
+            drawSingleObstacle(ctx, obstacle);
+            
+            // Draw movement path indicator
+            ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([5, 5]);
+            
+            const groundY = canvas.height - 30;
+            switch(obstacle.movement) {
+                case 'vertical':
+                    // Show vertical movement range
+                    const centerY = groundY - obstacle.height - 30;
+                    ctx.beginPath();
+                    ctx.moveTo(50, centerY - obstacle.amplitude);
+                    ctx.lineTo(350, centerY - obstacle.amplitude);
+                    ctx.moveTo(50, centerY + obstacle.amplitude);
+                    ctx.lineTo(350, centerY + obstacle.amplitude);
+                    ctx.stroke();
+                    break;
+                    
+                case 'ground':
+                    // Show ground line
+                    ctx.beginPath();
+                    ctx.moveTo(0, groundY - obstacle.height);
+                    ctx.lineTo(canvas.width, groundY - obstacle.height);
+                    ctx.stroke();
+                    break;
+                    
+                case 'air':
+                    // Show air line
+                    ctx.beginPath();
+                    ctx.moveTo(0, groundY - obstacle.height - 80);
+                    ctx.lineTo(canvas.width, groundY - obstacle.height - 80);
+                    ctx.stroke();
+                    break;
+            }
+            
+            ctx.setLineDash([]);
+        }
+        
+        function updateCharacter() {
+            if (isPaused) return;
+            
+            testCharacter.time += speedMultiplier;
+            
+            // Auto-bounce physics
+            if (testCharacter.grounded) {
+                // Auto jump every 120 frames (2 seconds at 60fps)
+                if (testCharacter.time % 120 === 0) {
+                    testCharacter.vy = testCharacter.bounceSpeed;
+                    testCharacter.grounded = false;
+                }
+                
+                // Cycle ducking state occasionally
+                testCharacter.ducking = Math.floor(testCharacter.time / 60) % 4 === 2;
+                
+                // Update height based on ducking
+                if (testCharacter.ducking) {
+                    const oldHeight = testCharacter.height;
+                    testCharacter.height = testCharacter.duckHeight;
+                    if (oldHeight !== testCharacter.height) {
+                        testCharacter.y += (oldHeight - testCharacter.height);
+                    }
+                } else {
+                    const oldHeight = testCharacter.height;
+                    testCharacter.height = testCharacter.normalHeight;
+                    if (oldHeight !== testCharacter.height && testCharacter.grounded) {
+                        testCharacter.y -= (testCharacter.height - oldHeight);
+                    }
+                }
+            } else {
+                testCharacter.ducking = false;
+                testCharacter.height = testCharacter.normalHeight;
+            }
+            
+            // Apply gravity
+            if (!testCharacter.grounded) {
+                testCharacter.vy += testCharacter.gravity * speedMultiplier;
+            }
+            
+            // Apply velocities
+            testCharacter.y += testCharacter.vy * speedMultiplier;
+            
+            // Ground collision
+            if (testCharacter.y + testCharacter.height >= testCharacter.groundY) {
+                testCharacter.y = testCharacter.groundY - testCharacter.height;
+                if (testCharacter.vy > 0) {
+                    testCharacter.vy = 0;
+                }
+                testCharacter.grounded = true;
+            } else {
+                testCharacter.grounded = false;
+            }
+            
+            // Add to trail
+            testCharacter.trail.push({
+                x: testCharacter.x + testCharacter.width/2,
+                y: testCharacter.y + testCharacter.height/2,
+                life: 1.0
+            });
+            
+            // Update trail
+            testCharacter.trail = testCharacter.trail.filter(particle => {
+                particle.life -= 0.05 * speedMultiplier;
+                return particle.life > 0;
+            });
+            
+            // Limit trail length
+            if (testCharacter.trail.length > 15) {
+                testCharacter.trail.shift();
+            }
+        }
+        
+        function drawCharacter(ctx) {
+            // Draw trail
+            testCharacter.trail.forEach(particle => {
+                const alpha = particle.life;
+                const size = particle.life * 20;
+                
+                ctx.save();
+                ctx.globalAlpha = alpha * 0.3;
+                ctx.fillStyle = '#FF6B6B';
+                ctx.beginPath();
+                ctx.arc(particle.x, particle.y, size/2, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            });
+            
+            // Determine which character image to use
+            let currentCharacterImage;
+            if (testCharacter.ducking) {
+                currentCharacterImage = characterImages.crouch;
+            } else if (!testCharacter.grounded) {
+                currentCharacterImage = characterImages.jump;
+            } else {
+                currentCharacterImage = characterImages.default;
+            }
+            
+            // Add squash/stretch animation
+            let squashX = 1;
+            let squashY = 1;
+            if (testCharacter.ducking) {
+                squashY = 0.7; // Slightly squashed when ducking
+            } else if (testCharacter.vy > 5) {
+                squashY = 0.9; // Slightly squashed when falling
+                squashX = 1.1;
+            } else if (testCharacter.vy < -5) {
+                squashY = 1.1; // Slightly stretched when jumping
+                squashX = 0.9;
+            }
+            
+            ctx.save();
+            
+            // Apply squash/stretch transform
+            ctx.translate(testCharacter.x + testCharacter.width/2, testCharacter.y + testCharacter.height/2);
+            ctx.scale(squashX, squashY);
+            ctx.translate(-testCharacter.width/2, -testCharacter.height/2);
+            
+            // Draw the character image if loaded, fallback to rectangle if not
+            if (currentCharacterImage && currentCharacterImage.complete) {
+                ctx.drawImage(currentCharacterImage, 0, 0, testCharacter.width, testCharacter.height);
+            } else {
+                // Fallback to rectangle
+                ctx.fillStyle = '#FF6B6B';
+                ctx.strokeStyle = '#FF4757';
+                ctx.lineWidth = 3;
+                
+                ctx.fillRect(0, 0, testCharacter.width, testCharacter.height);
+                ctx.strokeRect(0, 0, testCharacter.width, testCharacter.height);
+                
+                // Eyes
+                const eyeY = testCharacter.ducking ? 4 : 8;
+                ctx.fillStyle = 'white';
+                ctx.fillRect(8, eyeY, 8, 8);
+                ctx.fillRect(24, eyeY, 8, 8);
+                ctx.fillStyle = 'black';
+                ctx.fillRect(10, eyeY + 2, 4, 4);
+                ctx.fillRect(26, eyeY + 2, 4, 4);
+                
+                // Add state label
+                ctx.fillStyle = 'white';
+                ctx.font = '10px Courier New';
+                ctx.textAlign = 'center';
+                let stateText = testCharacter.ducking ? 'CROUCH' : (!testCharacter.grounded ? 'JUMP' : 'DEFAULT');
+                ctx.fillText(stateText, testCharacter.width/2, -5);
+                ctx.textAlign = 'left';
+            }
+            
+            ctx.restore();
+        }
+        
+        function drawCharacterTest() {
+            const canvas = canvases.character;
+            const ctx = contexts.character;
+            
+            if (!canvas || !ctx) return;
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw background gradient
+            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, '#87CEEB');
+            gradient.addColorStop(1, '#98FB98');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw ground
+            drawGround(ctx, canvas.width, canvas.height);
+            
+            // Update and draw character
+            updateCharacter();
+            drawCharacter(ctx);
+            
+            // Draw state indicators
+            ctx.fillStyle = 'rgba(255,255,255,0.8)';
+            ctx.font = '14px Courier New';
+            let stateText = 'State: ';
+            if (testCharacter.ducking) {
+                stateText += 'CROUCHING';
+            } else if (!testCharacter.grounded) {
+                stateText += 'JUMPING';
+            } else {
+                stateText += 'STANDING';
+            }
+            ctx.fillText(stateText, 10, 30);
+            
+            // Draw physics info
+            ctx.font = '12px Courier New';
+            ctx.fillText(`Y: ${Math.round(testCharacter.y)}, VY: ${testCharacter.vy.toFixed(1)}`, 10, 50);
+            ctx.fillText(`Grounded: ${testCharacter.grounded}`, 10, 70);
+        }
+        
+        // Animation loop
+        function testLoop() {
+            if (!isPaused) {
+                animationTime++;
+            }
+            
+            // Draw all test canvases
+            Object.keys(canvases).forEach(key => {
+                drawTestCanvas(key);
+            });
+            
+            drawCharacterTest();
+            
+            requestAnimationFrame(testLoop);
+        }
+        
+        // Initialize
+        updateSpeedDisplay();
+        testLoop();
+    </script>
+</body>
+</html> 
