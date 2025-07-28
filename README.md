@@ -55,15 +55,7 @@ This game was **100% designed and coded using [Cursor](https://cursor.sh/)** - a
 
 ## 🚀 Running the Game
 
-### Local Play
 Simply open `index.html` in your web browser. The game runs entirely client-side with no server requirements.
-
-### Web Hosting
-You can host this game on any static web hosting service:
-- GitHub Pages
-- Netlify
-- Vercel
-- Or any web server that serves static files
 
 ## 🎨 Game Aesthetics
 
