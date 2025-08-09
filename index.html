@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bouncy Adventure</title>
+    <title>Rust Run</title>
     <style>
         body {
             margin: 0;
@@ -322,7 +322,7 @@
         <div class="game-main">
             <canvas id="gameCanvas" width="800" height="600"></canvas>
             <div class="controls">
-                <strong>🎮 BOUNCY ADVENTURE</strong><br>
+                <strong>🎮 RUST RUN</strong><br>
                 Hold SPACE to charge jump, release to jump<br>
                 DOWN arrow to duck • P to pause • R to restart<br>
                 X or RIGHT-CLICK to shoot when gun is active
@@ -618,7 +618,10 @@
             baseDifficultyInterval: 1800, // Base score interval for difficulty increases (increased from 900 for slower progression)
             slowMotionActive: false, // Slow motion power-up active
             slowMotionTime: 0, // Slow motion duration timer
-            slowMotionFactor: 0.3 // How slow things go during slow motion (30% speed)
+            slowMotionFactor: 0.3, // How slow things go during slow motion (30% speed)
+            highScore: 0,
+            newHighScore: false,
+            highScoreBeaten: false
         };
         
         // Temporary fix: Simple function to prevent initialization error
@@ -642,6 +645,32 @@
             };
             return settings[gameState.selectedDifficulty] || settings.medium;
         }
+
+        // High score persistence utilities
+        const STORAGE_KEYS = { highScore: 'bouncyAdventure_highScore' };
+        function getDisplayScore() { return Math.floor(gameState.score / 60); }
+        function loadHighScore() {
+            try {
+                const v = parseInt(localStorage.getItem(STORAGE_KEYS.highScore) || '0', 10);
+                gameState.highScore = isNaN(v) ? 0 : v;
+            } catch (e) {
+                gameState.highScore = 0;
+            }
+        }
+        function saveHighScoreIfNeeded() {
+            try {
+                const finalScore = getDisplayScore();
+                if (finalScore > gameState.highScore) {
+                    gameState.highScore = finalScore;
+                    gameState.newHighScore = true;
+                    localStorage.setItem(STORAGE_KEYS.highScore, String(gameState.highScore));
+                } else {
+                    gameState.newHighScore = false;
+                }
+            } catch (e) { /* ignore storage errors */ }
+        }
+        // Initialize stored best score
+        loadHighScore();
         
         // Projectiles system
         const projectiles = [];
@@ -1426,6 +1455,7 @@
                         // Check game over
                         if (gameState.health <= 0) {
                             gameState.gameOver = true;
+                            saveHighScoreIfNeeded();
                         }
 
                         // Remove the obstacle that hit us
@@ -1909,6 +1939,14 @@
                 const difficulty = getCurrentDifficultySettings();
                 gameState.score += difficulty.scoreMultiplier;
                 
+                // Celebrate if we surpass previous best for the first time this run
+                if (!gameState.highScoreBeaten && getDisplayScore() > gameState.highScore) {
+                    gameState.highScoreBeaten = true;
+                    createHighScoreBeatEffect();
+                    // Play a cheerful sound (reuse health as a positive chime)
+                    playSound('health');
+                }
+
                 // Check for difficulty progression (adjusted by difficulty progression rate)
                 const progressionRate = difficulty.difficultyProgressionRate;
                 const adjustedInterval = gameState.baseDifficultyInterval / progressionRate;
@@ -1950,8 +1988,10 @@
             ctx.fillStyle = 'white';
             ctx.font = '20px Courier New';
             const difficulty = getCurrentDifficultySettings();
-            const displayScore = Math.floor(gameState.score / 60);
+            const displayScore = getDisplayScore();
             ctx.fillText('Score: ' + displayScore + ` (${difficulty.scoreMultiplier}x)`, canvas.width - 250, 30);
+            // Best score (top-left)
+            ctx.fillText('Best: ' + gameState.highScore, 20, 30);
             
             // Selected difficulty indicator (top right, below score)
             if (gameState.difficultySelected && gameState.gameStarted) {
@@ -2096,7 +2136,7 @@
                 ctx.fillStyle = 'white';
                 ctx.font = '52px Courier New';
                 ctx.textAlign = 'center';
-                ctx.fillText('BOUNCY ADVENTURE', canvas.width / 2, canvas.height / 2 - 200);
+                ctx.fillText('RUST RUN', canvas.width / 2, canvas.height / 2 - 200);
 
                 // Subtitle
                 ctx.font = '28px Courier New';
@@ -2177,7 +2217,7 @@
                 ctx.fillStyle = 'white';
                 ctx.font = '48px Courier New';
                 ctx.textAlign = 'center';
-                ctx.fillText('BOUNCY ADVENTURE', canvas.width / 2, canvas.height / 2 - 80);
+                ctx.fillText('RUST RUN', canvas.width / 2, canvas.height / 2 - 80);
                 
                 ctx.fillStyle = difficulty.color;
                 ctx.font = '32px Courier New';
@@ -2186,6 +2226,11 @@
                 ctx.fillStyle = 'white';
                 ctx.font = '24px Courier New';
                 ctx.fillText('Press SPACE to start!', canvas.width / 2, canvas.height / 2 + 20);
+                
+                // Best score on start screen
+                ctx.fillStyle = 'rgba(255,255,255,0.85)';
+                ctx.font = '20px Courier New';
+                ctx.fillText('Score to beat: ' + gameState.highScore, canvas.width / 2, canvas.height / 2 + 60);
                 ctx.textAlign = 'left';
                 return; // Don't draw the rest of the UI
             }
@@ -2210,7 +2255,19 @@
                 ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2 - 50);
                 
                 ctx.font = '24px Courier New';
-                ctx.fillText('Final Score: ' + Math.floor(gameState.score / 60), canvas.width / 2, canvas.height / 2);
+                ctx.fillText('Final Score: ' + getDisplayScore(), canvas.width / 2, canvas.height / 2);
+
+                // New record banner
+                if (gameState.newHighScore) {
+                    ctx.fillStyle = '#FFD700';
+                    ctx.font = '28px Courier New';
+                    ctx.fillText('NEW RECORD!', canvas.width / 2, canvas.height / 2 - 90);
+                }
+
+                // Best score display
+                ctx.fillStyle = 'rgba(255,255,255,0.9)';
+                ctx.font = '20px Courier New';
+                ctx.fillText('Best: ' + gameState.highScore, canvas.width / 2, canvas.height / 2 + 30);
                 ctx.fillText('Press R to Restart', canvas.width / 2, canvas.height / 2 + 60);
                 ctx.textAlign = 'left';
             }
@@ -2251,6 +2308,8 @@
             gameState.lastDifficultyIncrease = 0;
             gameState.slowMotionActive = false; // Reset slow motion state
             gameState.slowMotionTime = 0;
+            gameState.newHighScore = false;
+            gameState.highScoreBeaten = false;
             
             // Reset player
             player.x = 100;
@@ -2796,6 +2855,54 @@
                     maxLife: 120, // 2 seconds
                     color: '#FF8800',
                     size: 3 + Math.random() * 4
+                });
+            }
+        }
+
+        function createHighScoreBeatEffect() {
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+
+            // Center celebratory text (bigger)
+            particles.push({
+                x: centerX,
+                y: centerY - 20,
+                vx: 0,
+                vy: -0.5,
+                life: 1.0,
+                maxLife: 160,
+                color: '#00FFAA',
+                size: 36,
+                text: 'NEW BEST! 🎉',
+                isText: true
+            });
+            particles.push({
+                x: centerX,
+                y: centerY + 12,
+                vx: 0,
+                vy: -0.4,
+                life: 1.0,
+                maxLife: 160,
+                color: '#FFFFFF',
+                size: 22,
+                text: 'Keep it up!',
+                isText: true
+            });
+
+            // Confetti burst from around the text
+            const colors = ['#FF4757', '#FFD700', '#00BFFF', '#9B59B6', '#00D2D3', '#FF8800'];
+            for (let i = 0; i < 60; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = 2 + Math.random() * 3;
+                particles.push({
+                    x: centerX,
+                    y: centerY + 16,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    life: 1.0,
+                    maxLife: 120 + Math.random() * 60,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    size: 2 + Math.random() * 3
                 });
             }
         }
